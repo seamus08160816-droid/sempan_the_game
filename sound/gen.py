@@ -4,10 +4,12 @@
 녹음이나 외부 음원 없이 수식으로만 만든 소리라 저작권 걱정 없이 쓸 수 있어요.
 같은 파일을 iOS 앱(번들)과 웹·안드로이드(web/build.py가 HTML에 넣어요)가 함께 써요.
 
-사용법: python3 sound/gen.py   (필요: numpy)
+사용법: python3 sound/gen.py <소리 이름...> 또는 --all   (필요: numpy)
 """
 import pathlib
+import sys
 import wave
+import zlib
 
 import numpy as np
 
@@ -372,21 +374,30 @@ def bgm():
     return normalize(loop, 0.6)
 
 
+SOUNDS = {
+    **{f"hit{lv}": (lambda lv=lv: hit(lv), SR) for lv in range(1, 5)},
+    "tick": (tick, SR), "sparkle": (sparkle, SR), "luck": (luck, SR), "miss": (miss, SR),
+    "coins": (coins, SR), "bell": (boss_bell, SR), "fanfare": (fanfare, SR), "chime": (chime, SR),
+    "swish": (swish, SR), "place": (card_place, SR), "toss": (toss, SR), "bgm": (bgm, BGM_SR),
+}
+
+
 def main():
-    for lv in range(1, 5):
-        write(f"hit{lv}", hit(lv))
-    write("tick", tick())
-    write("sparkle", sparkle())
-    write("luck", luck())
-    write("miss", miss())
-    write("coins", coins())
-    write("bell", boss_bell())
-    write("fanfare", fanfare())
-    write("chime", chime())
-    write("swish", swish())
-    write("place", card_place())
-    write("toss", toss())
-    write("bgm", bgm(), BGM_SR)
+    # 고친 소리만 다시 만들어요. 다른 소리 파일은 그대로 두어야 귀에 익은 소리가 바뀌지 않아요
+    # 사용법: python3 sound/gen.py hit1 swish   /   전부: python3 sound/gen.py --all
+    names = list(SOUNDS) if sys.argv[1:] == ["--all"] else sys.argv[1:]
+    unknown = [n for n in names if n not in SOUNDS]
+    if not names or unknown:
+        print(f"다시 만들 소리 이름을 적어 주세요 (전부는 --all): {' '.join(SOUNDS)}")
+        if unknown:
+            print(f"모르는 이름: {' '.join(unknown)}")
+        sys.exit(1)
+    global rng
+    for name in names:
+        # 소리마다 따로 고정한 난수라서, 하나를 고쳐도 다른 소리가 바뀌지 않아요
+        rng = np.random.default_rng(zlib.crc32(name.encode()))
+        fn, sr = SOUNDS[name]
+        write(name, fn(), sr)
 
 
 if __name__ == "__main__":
