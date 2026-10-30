@@ -58,9 +58,9 @@ final class Sound {
 
     /// 카드를 훑을 때: 너무 자주 겹치지 않게 하고 음높이를 조금씩 바꿔요
     func swish() {
-        guard Date().timeIntervalSince(lastSwish) > 0.04 else { return }
+        guard Date().timeIntervalSince(lastSwish) > 0.06 else { return }
         lastSwish = Date()
-        play(.swish, volume: 0.8, rate: .random(in: 0.85...1.2))
+        play(.swish, volume: 0.6, rate: .random(in: 0.92...1.08))
     }
 
     /// 피해 크기(적 체력 대비)에 따라 1~4단계. 화면 흔들림도 같은 단계를 써요

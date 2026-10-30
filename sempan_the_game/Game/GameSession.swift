@@ -500,9 +500,9 @@ final class GameSession {
                 shake(1)
             }
         }
-        await wait(350)
+        await wait(200)
 
-        // 최종 결과 숫자를 세어 올려요
+        // 최종 결과 숫자를 세어 올려요. 연필 톡 소리가 점점 높아지며 때리는 소리로 이어져요
         log("0", .final)
         let frames = 20
         for k in 1...frames {
@@ -511,7 +511,8 @@ final class GameSession {
             if let last = run.fight?.log.indices.last {
                 run.fight?.log[last].text = Fmt.n((res.final * e).rounded(.down))
             }
-            await wait(650 / frames)
+            if k % 3 == 1 { Sound.shared.play(.tick, volume: 0.45, rate: Float(1 + 0.7 * p)) }
+            await wait(500 / frames)
         }
         finalPop = true
         hiddenDamage = 0

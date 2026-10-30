@@ -107,57 +107,69 @@ def write(name, x, sr=SR):
     print(f"{name}.wav  {len(x) / sr:.2f}s  {(len(data) * 2 + 44) / 1024:.0f} KB")
 
 
-# ---------- 때리는 소리: 휴대용 게임기 RPG풍 타격음, 4단계 ----------
-# 1단계는 가볍게 "탁", 단계가 오를수록 음이 높고 길고 거칠어지며 4단계는 폭발까지 섞여요.
+# ---------- 때리는 소리: 4단계 ----------
+# 계산 소리(연필 톡)와 같은 재료로 시작해서 같은 공책 세계의 소리로 들리게 해요.
+# 연필로 톡 + 손바닥으로 종이를 내리치는 "탁"(음이 뚝 떨어지는 타격감) 위에,
+# 단계가 오를수록 더 높은 파열음과 두 번째 타격, 4단계는 종이가 찢어지며 연필심이 부러지는 소리가 더해져요.
+
+def pencil(pitch=1900, gain=1.0):
+    """tick()과 같은 연필 끝 소리"""
+    n = int(0.06 * SR)
+    noise = bandpass(rng.uniform(-1, 1, n), 1500, 6000) * env_exp(n, 0.008)
+    blip = np.sin(2 * np.pi * pitch * t_of(0.06)) * env_exp(n, 0.012)
+    return (noise * 1.2 + blip * 0.5) * gain
+
 
 def hit(level):
     p = [
-        dict(f0=380, f1=90, body=0.07, noise=0.09, drv=1.6, bits=7, hold=3, lp=2200),
-        dict(f0=720, f1=120, body=0.09, noise=0.14, drv=2.6, bits=6, hold=2, lp=4500),
-        dict(f0=1300, f1=160, body=0.12, noise=0.22, drv=4.0, bits=5, hold=2, lp=8000),
-        dict(f0=2200, f1=220, body=0.16, noise=0.34, drv=6.0, bits=4, hold=1, lp=10500),
+        dict(f0=300, f1=80, body=0.07, slap=0.06, tip=1900, tipg=0.55, hi=3000, drv=1.3),
+        dict(f0=520, f1=95, body=0.09, slap=0.09, tip=2300, tipg=0.75, hi=4500, drv=1.8),
+        dict(f0=900, f1=120, body=0.11, slap=0.13, tip=2800, tipg=0.95, hi=6500, drv=2.4),
+        dict(f0=1400, f1=150, body=0.14, slap=0.18, tip=3400, tipg=1.15, hi=9000, drv=3.2),
     ][level - 1]
-    dur = 0.25 + 0.35 * (level - 1)
+    dur = 0.3 + 0.3 * (level - 1)
     buf = np.zeros(int(dur * SR))
 
     def strike(at, gain, pitch=1.0):
-        n = int(p["body"] * SR * 2.2)
+        place(buf, pencil(p["tip"] * pitch, p["tipg"] * gain), at)
+        n = int(p["body"] * SR * 2.5)
         ph = sweep_phase(p["f0"] * pitch, p["f1"] * pitch, n / SR, curve=5)
-        body = square(ph, 0.4) * env_exp(n, p["body"] * 0.55)
-        nn = int(p["noise"] * SR * 2)
-        noise = onepole_lp(rng.uniform(-1, 1, nn), p["lp"]) * env_exp(nn, p["noise"] * 0.45)
-        click = np.zeros(int(0.004 * SR)); click[:3] = [1, -0.8, 0.5]
-        place(buf, body * 0.65 * gain, at)
-        place(buf, noise * 0.9 * gain, at)
-        place(buf, click * gain, at)
+        body = (np.sin(ph) + 0.3 * triangle(ph * 2)) * env_exp(n, p["body"] * 0.5) * attack(n, 0.002)
+        m = int(p["slap"] * SR * 2)
+        slap = bandpass(rng.uniform(-1, 1, m), 500, p["hi"]) * env_exp(m, p["slap"] * 0.35)
+        place(buf, body * 0.9 * gain, at + 0.004)
+        place(buf, slap * 1.1 * gain, at + 0.002)
 
     strike(0, 1.0)
-    if level >= 2:  # 낮은 "쿵"
-        n = int(0.25 * SR)
-        place(buf, np.sin(sweep_phase(150, 55, 0.25, curve=3)) * env_exp(n, 0.07) * 0.8, 0)
-    if level >= 3:  # 한 번 더 내리치는 소리와 높은 파열음
-        strike(0.045, 0.75, pitch=1.25)
-        n = int(0.18 * SR)
+    if level >= 2:  # 책상이 울리는 낮은 "쿵"
+        n = int(0.22 * SR)
+        place(buf, np.sin(sweep_phase(140, 55, 0.22, curve=3)) * env_exp(n, 0.06) * attack(n, 0.003) * 0.7, 0.004)
+    if level >= 3:  # 한 번 더 내리치는 소리와 높은 종이 파열음
+        strike(0.05, 0.7, pitch=1.2)
+        n = int(0.16 * SR)
         crack = rng.uniform(-1, 1, n)
-        crack = crack - onepole_lp(crack, 2500)
-        place(buf, crack * env_exp(n, 0.05) * (0.7 if level == 3 else 1.1), 0.01)
-    if level >= 4:  # 폭발 저음과 부서지며 흩어지는 높은 조각들
-        n = int(0.9 * SR)
-        boom = np.sin(sweep_phase(90, 32, 0.9, curve=2.5)) * env_exp(n, 0.28)
-        rumble = onepole_lp(rng.uniform(-1, 1, n), 400) * env_exp(n, 0.3) * 3
-        place(buf, (boom + rumble) * 0.55, 0.02)
-        m = int(0.4 * SR)
-        hiss = rng.uniform(-1, 1, m)
-        hiss = (hiss - onepole_lp(hiss, 4000)) * env_exp(m, 0.12)
-        place(buf, hiss * 0.6, 0.005)
-        for k in range(14):
-            at = 0.06 + k * 0.035 + rng.uniform(0, 0.02)
-            f = 4200 - k * 180 + rng.uniform(-200, 200)
-            m = int(0.06 * SR)
-            shard = square(2 * np.pi * f * t_of(0.06), 0.3) * env_exp(m, 0.018)
-            place(buf, shard * 0.3 * (1 - k / 16), at)
+        crack = crack - onepole_lp(crack, 3000)
+        place(buf, crack * env_exp(n, 0.04) * (0.5 if level == 3 else 0.9), 0.01)
+    if level >= 4:  # 종이 찢어지는 소리 + 연필심이 부러지며 튀는 높은 조각
+        n = int(0.4 * SR)
+        rip = np.zeros(n)
+        k = 0
+        while k < n:  # 잘게 끊기는 잡음 알갱이
+            g = int(rng.uniform(0.004, 0.012) * SR)
+            if rng.uniform() < 0.7:
+                rip[k:k + g] += rng.uniform(-1, 1, len(rip[k:k + g])) * rng.uniform(0.4, 1)
+            k += g
+        rip = bandpass(rip, 1200, 7000) * env_exp(n, 0.14)
+        place(buf, rip * 0.8, 0.06)
+        n = int(0.6 * SR)
+        boom = np.sin(sweep_phase(90, 40, 0.6, curve=2.5)) * env_exp(n, 0.16) * attack(n, 0.004)
+        place(buf, boom * 0.6, 0.01)
+        for k in range(8):
+            at = 0.08 + k * 0.04 + rng.uniform(0, 0.02)
+            f = 4600 - k * 260 + rng.uniform(-200, 200)
+            ping = bell_tone(f, 0.08, 0.012, partials=((1, 1), (2.7, 0.3)))
+            place(buf, ping * 0.35 * (1 - k / 10), at)
     out = drive(buf, p["drv"])
-    out = crush(out, p["bits"], p["hold"])
     return fade_out(normalize(out, 0.9), 0.03)
 
 
@@ -273,10 +285,14 @@ def chime():
 # ---------- 카드: 스치는 소리, 놓는 소리, 버리는 소리 ----------
 
 def swish():
-    n = int(0.09 * SR)
-    noise = bandpass(rng.uniform(-1, 1, n), 2200, 7500)
-    e = np.minimum(1, np.arange(n) / (0.018 * SR)) * env_exp(n, 0.025)
-    return normalize(noise * e, 0.45)
+    """종이 카드끼리 가볍게 스치는 "사삭": 부드럽게 올라오는 두 알갱이"""
+    buf = np.zeros(int(0.16 * SR))
+    for at, dur, gain in [(0.0, 0.05, 0.6), (0.04, 0.08, 1.0)]:
+        n = int(dur * SR)
+        grain = bandpass(rng.uniform(-1, 1, n), 900, 3000)
+        e = np.sin(np.pi * np.arange(n) / n) ** 2  # 시작도 끝도 부드럽게
+        place(buf, grain * e * gain, at)
+    return normalize(onepole_lp(buf, 3500), 0.28)
 
 
 def card_place():

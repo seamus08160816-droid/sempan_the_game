@@ -609,7 +609,7 @@ const Sound = (() => {
     state, unlock, play,
     get ready() { return !!ctx && Object.keys(buffers).length > 0; },
     // 카드를 훑을 때: 너무 자주 겹치지 않게 하고 음높이를 조금씩 바꿔요
-    swish() { const now = performance.now(); if (now - lastSwish < 40) return; lastSwish = now; play('swish', { rate: 0.85 + Math.random() * 0.35, vol: 0.8 }); },
+    swish() { const now = performance.now(); if (now - lastSwish < 60) return; lastSwish = now; play('swish', { rate: 0.92 + Math.random() * 0.16, vol: 0.6 }); },
     // 피해 크기(적 체력 대비)에 따라 1~4단계. 화면 흔들림도 같은 단계를 써요
     hitLevel: (dmg, hp) => dmg <= 0 ? 0 : dmg < hp * 0.15 ? 1 : dmg < hp * 0.4 ? 2 : dmg < hp ? 3 : 4,
     toggle(kind) {
@@ -1011,9 +1011,9 @@ class Game {
       if (fx.style === 'miss') Sound.play('miss');
       else { Sound.play(fx.text.startsWith('행운') ? 'luck' : 'sparkle'); shake(1); }
     }
-    await wait(350);
+    await wait(200);
 
-    // 최종 결과 숫자를 세어 올려요
+    // 최종 결과 숫자를 세어 올려요. 연필 톡 소리가 점점 높아지며 때리는 소리로 이어져요
     this.log('0', 'final');
     const frames = 20;
     for (let k = 1; k <= frames; k++) {
@@ -1021,7 +1021,8 @@ class Game {
       const last = f.log[f.log.length - 1];
       last.text = fmt(Math.floor(res.final * e));
       paint();
-      await wait(650 / frames);
+      if (k % 3 === 1) Sound.play('tick', { rate: 1 + 0.7 * k / frames, vol: 0.45 });
+      await wait(500 / frames);
     }
     this.finalPop = true;
     this.hiddenDamage = 0;
