@@ -6,6 +6,7 @@ struct GameView: View {
     let onExit: () -> Void
     @State private var showDeck = false
     @State private var showSound = false
+    @State private var showPick = false
     @Environment(\.verticalSizeClass) private var vSize
 
     var body: some View {
@@ -42,7 +43,10 @@ struct GameView: View {
                 RewardOverlay(session: session, reward: reward, showDeck: $showDeck)
             }
             if let over = run.over {
-                GameOverOverlay(session: session, info: over, onExit: onExit)
+                GameOverOverlay(session: session, info: over, onExit: onExit) {
+                    // 게임이 끝나고 새 게임을 시작해도 퍽을 다시 골라요
+                    if PerkPickSheet.needed(session.profile) { showPick = true } else { session.newGame() }
+                }
             }
             if let intro = session.intro {
                 IntroOverlay(intro: intro)
@@ -56,6 +60,11 @@ struct GameView: View {
         .animation(.easeInOut(duration: 0.25), value: session.intro?.id)
         .sheet(isPresented: $showDeck) { DeckSheet(session: session) }
         .sheet(isPresented: $showSound) { SoundSettingsSheet() }
+        .sheet(isPresented: $showPick) {
+            PerkPickSheet(getProfile: { session.profile },
+                          setEquipped: { session.setEquipped($0) },
+                          onStart: { session.newGame() })
+        }
     }
 
     /// 지도에서는 갈 수 있는 칸으로, 그 외에는 맨 위로 스크롤해요

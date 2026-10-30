@@ -33,10 +33,22 @@ struct MapView: View {
         n.type == .boss ? min(width * 0.4, 150) : min(width * 0.27, 100)
     }
 
-    /// 칸 너비의 절반만큼 양 끝에서 떨어뜨려 칸이 화면 밖으로 나가지 않게 해요
-    private func cx(_ n: MapNode, _ width: CGFloat) -> CGFloat {
-        let half = nodeWidth(n, width) / 2 + 2
-        return max(half, min(width - half, n.x / 100 * width))
+    /// 칸 가운데 위치: 화면 밖으로 나가지 않고, 같은 층 칸끼리 겹치지 않게 간격을 벌려요
+    private func positions(_ run: RunState, _ width: CGFloat) -> [String: CGFloat] {
+        let gap: CGFloat = 6, edge: CGFloat = 2
+        var pos: [String: CGFloat] = [:]
+        for row in run.map {
+            let ns = row.sorted { $0.x < $1.x }
+            let w = ns.map { nodeWidth($0, width) }
+            var c = ns.indices.map { i in max(w[i] / 2 + edge, min(width - w[i] / 2 - edge, ns[i].x / 100 * width)) }
+            for i in c.indices.dropFirst() { c[i] = max(c[i], c[i - 1] + (w[i - 1] + w[i]) / 2 + gap) }
+            if let last = c.indices.last {
+                c[last] = min(c[last], width - w[last] / 2 - edge)
+                for i in stride(from: last - 1, through: 0, by: -1) { c[i] = min(c[i], c[i + 1] - (w[i] + w[i + 1]) / 2 - gap) }
+            }
+            for (i, n) in ns.enumerated() { pos[n.id] = c[i] }
+        }
+        return pos
     }
 
     private func map(_ run: RunState) -> some View {
@@ -44,6 +56,8 @@ struct MapView: View {
         let nodes = Array(run.map.joined())
         return GeometryReader { geo in
             let w = geo.size.width
+            let pos = positions(run, w)
+            let cx: (MapNode, CGFloat) -> CGFloat = { n, _ in pos[n.id] ?? n.x / 100 * w }
             ZStack(alignment: .topLeading) {
                 // 길
                 Canvas { ctx, _ in

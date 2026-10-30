@@ -1599,7 +1599,7 @@ function paintMenu(app) {
     <div class="tiles">
       <button class="tile" data-act="sheet" data-s="ach"><span class="ic">🏆</span><b>업적</b><span class="v h">${Object.keys(p.achievements).length}/${ACHIEVEMENTS.length}</span><small>슬롯 ${sel + 1}</small></button>
       <button class="tile" data-act="sheet" data-s="col"><span class="ic">🃏</span><b>카드 도감</b><span class="v h">${collectionCount(p)}/${CATALOG.length}</span><small>슬롯 ${sel + 1}</small></button>
-      <button class="tile" data-act="sheet" data-s="perks"><span class="ic">🎒</span><b>퍽</b><span class="v h">${(p.equipped || []).length}/${PERK_SLOTS}</span><small>해금 ${(p.perksUnlocked || []).length}/${PERKS.length}</small></button>
+      <button class="tile" data-act="sheet" data-s="perks"><span class="ic">🎒</span><b>퍽</b><span class="v h">${(p.perksUnlocked || []).length}/${PERKS.length}</span><small>${p.run ? `이번 판 ${(p.run.perks || []).length}개` : '시작할 때 골라요'}</small></button>
     </div>
     <p class="sect" style="text-align:center; font-weight:400">v${VERSION}</p>
   </div>`;
@@ -1638,12 +1638,21 @@ function paintMap(screen) {
   const nodes = run.map.flat();
   const yOf = f => (f - 0.5) * ROW_H;
   const H = CFG.actLen * ROW_H;
-  // 칸 너비의 절반만큼 양 끝에서 떨어뜨려 칸이 지도 밖으로 나가지 않게 해요
+  // 칸 가운데 위치(%): 지도 밖으로 나가지 않고, 같은 층 칸끼리 겹치지 않게 간격을 벌려요
   const W = screen.clientWidth || 360;
-  const cx = n => {
-    const half = n.type === 'boss' ? Math.min(20, 75 / W * 100) : Math.min(13.5, 50 / W * 100);
-    return Math.max(half + 0.5, Math.min(99.5 - half, n.x));
-  };
+  const wOf = n => n.type === 'boss' ? Math.min(40, 150 / W * 100) : Math.min(27, 100 / W * 100);
+  const GAP = 2;
+  const pos = {};
+  run.map.forEach(row => {
+    const ns = row.slice().sort((a, b) => a.x - b.x);
+    const c = ns.map(n => Math.max(wOf(n) / 2 + 0.5, Math.min(99.5 - wOf(n) / 2, n.x)));
+    for (let i = 1; i < ns.length; i++) c[i] = Math.max(c[i], c[i - 1] + (wOf(ns[i - 1]) + wOf(ns[i])) / 2 + GAP);
+    const last = ns.length - 1;
+    c[last] = Math.min(c[last], 99.5 - wOf(ns[last]) / 2);
+    for (let i = last - 1; i >= 0; i--) c[i] = Math.min(c[i], c[i + 1] - (wOf(ns[i]) + wOf(ns[i + 1])) / 2 - GAP);
+    ns.forEach((n, i) => { pos[n.id] = c[i]; });
+  });
+  const cx = n => pos[n.id];
   let svg = `<svg viewBox="0 0 100 ${H}" preserveAspectRatio="none" aria-hidden="true">`;
   nodes.forEach(n => n.next.forEach(id => {
     const m = R.node(run, id); if (!m) return;
@@ -2014,20 +2023,54 @@ function introHTML(it) {
     <small>${it.sub}</small></div></div></div>`;
 }
 
+// 퍽 보기 (메인 화면): 진행 중인 판의 퍽은 판이 끝날 때까지 바꿀 수 없어요
 function perksHTML() {
   const slot = G ? G.slot : ui.selectedSlot;
   const p = Store.profile(slot);
-  const eq = p.equipped || [], unlocked = p.perksUnlocked || [];
+  const run = G ? G.run : p.run;
+  const inRun = run && !run.over;
+  const mine = inRun ? (run.perks || []) : [];
+  const unlocked = p.perksUnlocked || [];
   const rows = PERKS.map(k => {
-    const open = unlocked.includes(k.key), on = eq.includes(k.key);
-    const tag = !open ? `${depthText(k.depth)} 도달 시 해금` : on ? '장착 중' : eq.length >= PERK_SLOTS ? '' : '장착';
-    return `<button class="perk${on ? ' on' : ''}${open ? '' : ' locked'}" ${open && !G ? `data-act="equip" data-k="${k.key}"` : ''} aria-pressed="${on}">
-      <span class="ic">${open ? k.icon : '🔒'}</span><span class="tx"><b>${k.name}</b><small>${k.desc}</small></span><em>${tag}</em></button>`;
+    const open = unlocked.includes(k.key), on = mine.includes(k.key);
+    const tag = !open ? `${depthText(k.depth)} 도달 시 해금` : on ? '이번 판' : '';
+    return `<div class="perk${on ? ' on' : ''}${open ? '' : ' locked'}">
+      <span class="ic">${open ? k.icon : '🔒'}</span><span class="tx"><b>${k.name}</b><small>${k.desc}</small></span><em>${tag}</em></div>`;
   }).join('');
-  const note = G ? '장착은 메인 화면에서 바꿀 수 있어요. 새 게임부터 적용돼요.' : '최대 3개까지 장착해요. 새 게임을 시작할 때 적용돼요.';
+  const note = inRun
+    ? `이번 판에 장착한 퍽은 ${mine.length}개예요. 판이 끝나야 바꿀 수 있어요.`
+    : `새 게임을 시작할 때 ${PERK_SLOTS}개까지 골라요.`;
   return `<div class="overlay" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true">
-    ${sheetHead('퍽', `슬롯 ${slot + 1} · 장착 ${eq.length}/${PERK_SLOTS} · 해금 ${unlocked.length}/${PERKS.length}`)}
+    ${sheetHead('퍽', `슬롯 ${slot + 1} · 해금 ${unlocked.length}/${PERKS.length}`)}
     <p class="sub">${note} 더 깊이 내려갈수록 하나씩 해금돼요 (최고 ${depthText(Math.max(1, p.stats.maxDepth || 0))}).</p>${rows}</div></div>`;
+}
+
+// 새 게임을 시작하기 전에 퍽을 골라요. 해금한 퍽이 없으면 바로 시작해요
+function pickPerksThen(slot, start) {
+  const p = Store.profile(slot);
+  if (!(p.perksUnlocked || []).length) { start(); return; }
+  // 지난번 고른 것을 기본으로, 해금한 것만 남겨요
+  Store.update(slot, q => { q.equipped = (q.equipped || []).filter(k => (q.perksUnlocked || []).includes(k)).slice(0, PERK_SLOTS); });
+  ui.pick = { slot, start };
+  ui.sheet = 'pick';
+  paint();
+}
+
+function pickHTML() {
+  const slot = ui.pick.slot;
+  const p = Store.profile(slot);
+  const eq = p.equipped || [], unlocked = p.perksUnlocked || [];
+  const rows = PERKS.filter(k => unlocked.includes(k.key)).map(k => {
+    const on = eq.includes(k.key);
+    const tag = on ? '장착' : eq.length >= PERK_SLOTS ? '' : '고르기';
+    return `<button class="perk${on ? ' on' : ''}" data-act="equip" data-k="${k.key}" aria-pressed="${on}">
+      <span class="ic">${k.icon}</span><span class="tx"><b>${k.name}</b><small>${k.desc}</small></span><em>${tag}</em></button>`;
+  }).join('');
+  const locked = PERKS.length - unlocked.length;
+  return `<div class="overlay" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true">
+    ${sheetHead('퍽 고르기', `이번 판에 쓸 퍽을 ${PERK_SLOTS}개까지 골라요 (${eq.length}/${PERK_SLOTS}). 판이 끝날 때까지 바꿀 수 없어요.`, 'closeSheet')}
+    ${rows}${locked ? `<p class="sub">아직 잠긴 퍽 ${locked}개는 더 깊이 내려가면 해금돼요.</p>` : ''}
+    <button class="btn" data-act="pickStart">${eq.length ? `이 퍽 ${eq.length}개로 시작` : '퍽 없이 시작'}</button></div></div>`;
 }
 
 // ----- 시트와 오버레이 -----
@@ -2046,6 +2089,7 @@ function paintOverlays() {
   if (ui.sheet === 'ach') want.push(['ach', achievementsHTML()]);
   if (ui.sheet === 'col') want.push(['col', collectionHTML()]);
   if (ui.sheet === 'perks') want.push(['perks', perksHTML()]);
+  if (ui.sheet === 'pick' && ui.pick) want.push(['pick', pickHTML()]);
   if (ui.confirm) want.push(['confirm', `<div class="overlay dialog" data-act="cancelConfirm"><div class="sheet" role="alertdialog" aria-modal="true">
       <h3>${ui.confirm.title}</h3>${ui.confirm.msg ? `<p class="sub">${ui.confirm.msg}</p>` : ''}
       <button class="btn" style="background:var(--red); border-color:var(--red)" data-act="okConfirm">${ui.confirm.ok}</button>
@@ -2217,11 +2261,13 @@ const actions = {
     paint();
   },
   continue: () => openGame(ui.selectedSlot, false),
-  start: () => openGame(ui.selectedSlot, true),
+  start: () => { const slot = ui.selectedSlot; pickPerksThen(slot, () => openGame(slot, true)); },
   newGameAsk: () => {
-    ui.confirm = { title: `슬롯 ${ui.selectedSlot + 1}에 진행 중인 게임이 있어요`, msg: '', ok: '새 게임 시작 (진행 중인 판은 사라져요)', run: () => openGame(ui.selectedSlot, true) };
+    const slot = ui.selectedSlot;
+    ui.confirm = { title: `슬롯 ${slot + 1}에 진행 중인 게임이 있어요`, msg: '', ok: '새 게임 시작 (진행 중인 판은 사라져요)', run: () => pickPerksThen(slot, () => openGame(slot, true)) };
     paint();
   },
+  pickStart: () => { const start = ui.pick && ui.pick.start; ui.sheet = null; ui.pick = null; if (start) start(); paint(); },
   okConfirm: () => { const c = ui.confirm; ui.confirm = null; c.run(); paint(); },
   cancelConfirm: () => { ui.confirm = null; paint(); },
   sheet: el => { ui.sheet = el.dataset.s; ui.info = ''; paint(); },
@@ -2235,7 +2281,7 @@ const actions = {
   },
   exit: () => exitGame(),
   toMenu: () => exitGame(),
-  restart: () => { G.newGame(); paint(); },
+  restart: () => pickPerksThen(G.slot, () => G.newGame()),
   node: el => { const n = R.node(G.run, el.dataset.id); if (n) G.enterNode(n).then(paint); },
   toggleSound: el => { Sound.toggle(el.dataset.k); paint(); },
   unselect: el => unselectCard(+el.dataset.id),
@@ -2249,8 +2295,10 @@ const actions = {
   restock: () => { G.restock(); paint(); },
   reroll: () => { G.rerollPerks(); paint(); },
   sharpen: () => { G.sharpen(); paint(); },
+  // 퍽 고르기 창에서만 바꿀 수 있어요 (진행 중인 판에는 영향 없음)
   equip: el => {
-    const k = el.dataset.k, slot = ui.selectedSlot;
+    if (ui.sheet !== 'pick' || !ui.pick) return;
+    const k = el.dataset.k, slot = ui.pick.slot;
     Store.update(slot, p => {
       const eq = p.equipped || (p.equipped = []);
       const i = eq.indexOf(k);

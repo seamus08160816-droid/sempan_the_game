@@ -307,6 +307,8 @@ struct GameOverOverlay: View {
     let session: GameSession
     let info: GameOverInfo
     let onExit: () -> Void
+    /// 새 게임 시작 (퍽을 다시 골라요)
+    let onNewGame: () -> Void
 
     var body: some View {
         let run = session.run
@@ -325,7 +327,7 @@ struct GameOverOverlay: View {
                     stat("모은 골드", Fmt.n(run.goldTotal))
                     stat("역대 기록", "\(p.bestDepth)층, 한 방 \(Fmt.n(p.bestSingle))")
                 }
-                Button("새 게임 시작") { session.newGame() }
+                Button("새 게임 시작") { onNewGame() }
                     .buttonStyle(MainButtonStyle())
                 Button("메인 화면으로") { onExit() }
                     .buttonStyle(MainButtonStyle(filled: false))

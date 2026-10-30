@@ -100,6 +100,11 @@ final class GameSession {
 
     // MARK: 퍽
 
+    /// 다음 판에 쓸 퍽 (새 게임을 시작하기 전에만 골라요)
+    func setEquipped(_ list: [String]) {
+        updateProfile { $0.equipped = list }
+    }
+
     private func usePerk(_ k: MetaPerk) {
         var used = run.perkUsed ?? [:]
         used[k.rawValue] = run.act
@@ -301,7 +306,8 @@ final class GameSession {
             if ascending {
                 run.gold = (run.gold / oldEcon).rounded()
                 for i in run.deck.indices where run.deck[i].enh.contains(.stack) {
-                    run.deck[i].bonus = max(CFG.stackStep, (run.deck[i].bonus / oldEcon).rounded())
+                    let bonus = max(CFG.stackStep, (run.deck[i].bonus / oldEcon).rounded())
+                    run.deck[i].bonus = bonus
                 }
                 msg += " 차원 상승! 이제 체력은 10의 거듭제곱이고, 계산 결과의 자릿수(log₁₀)만큼 깎여요. 골드도 새 단위로 바뀌었어요."
                 Task { await showIntro(Intro(icon: "🌌", title: "차원 상승", sub: "로그 단계 · 결과의 자릿수가 피해가 돼요")) }
@@ -606,7 +612,9 @@ final class GameSession {
             let p = Double(k) / Double(frames)
             let e = 1 - pow(1 - p, 3)
             if let last = run.fight?.log.indices.last {
-                run.fight?.log[last].text = run.dmgText(isLog ? (res.final * e * 10).rounded(.down) / 10 : (res.final * e).rounded(.down))
+                // 글자를 먼저 만들어 두어야 run을 읽고 쓰는 일이 겹치지 않아요 (겹치면 앱이 멈춰요)
+                let text = run.dmgText(isLog ? (res.final * e * 10).rounded(.down) / 10 : (res.final * e).rounded(.down))
+                run.fight?.log[last].text = text
             }
             if k % 3 == 1 { Sound.shared.play(.tick, volume: 0.45, rate: Float(1 + 0.7 * p)) }
             await wait(500 / frames)

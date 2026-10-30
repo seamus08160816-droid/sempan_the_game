@@ -12,6 +12,7 @@ struct MainMenuView: View {
     @State private var showCollection = false
     @State private var showSound = false
     @State private var showPerks = false
+    @State private var showPick = false
 
     private var profile: SlotProfile { store.profile(selected) }
 
@@ -36,7 +37,7 @@ struct MainMenuView: View {
         }
         .sheet(isPresented: $showSound) { SoundSettingsSheet() }
         .confirmationDialog("슬롯 \(selected + 1)에 진행 중인 게임이 있어요", isPresented: $confirmNewGame, titleVisibility: .visible) {
-            Button("새 게임 시작 (진행 중인 판은 사라져요)", role: .destructive) { onStart(selected, true) }
+            Button("새 게임 시작 (진행 중인 판은 사라져요)", role: .destructive) { begin() }
             Button("취소", role: .cancel) {}
         }
         .alert("슬롯 \((confirmDelete ?? 0) + 1)을 지울까요?", isPresented: Binding(get: { confirmDelete != nil }, set: { if !$0 { confirmDelete = nil } })) {
@@ -51,6 +52,11 @@ struct MainMenuView: View {
         .sheet(isPresented: $showAchievements) { AchievementsView(profile: profile, slot: selected) }
         .sheet(isPresented: $showCollection) { CollectionView(profile: profile, slot: selected) }
         .sheet(isPresented: $showPerks) { PerkSheet(store: store, slot: selected) }
+        .sheet(isPresented: $showPick) {
+            PerkPickSheet(getProfile: { store.profile(selected) },
+                          setEquipped: { list in store.update(selected) { $0.equipped = list } },
+                          onStart: { onStart(selected, true) })
+        }
     }
 
     private var title: some View {
@@ -135,6 +141,11 @@ struct MainMenuView: View {
 
     // MARK: 시작하기
 
+    /// 해금한 퍽이 있으면 먼저 고르고 시작해요
+    private func begin() {
+        if PerkPickSheet.needed(profile) { showPick = true } else { onStart(selected, true) }
+    }
+
     @ViewBuilder
     private var startButtons: some View {
         let hasRun = store.slots[selected]?.run != nil
@@ -145,7 +156,7 @@ struct MainMenuView: View {
                 Button("새 게임") { confirmNewGame = true }
                     .buttonStyle(MainButtonStyle(filled: false))
             } else {
-                Button("시작하기") { onStart(selected, true) }
+                Button("시작하기") { begin() }
                     .buttonStyle(MainButtonStyle())
             }
         }
@@ -162,7 +173,7 @@ struct MainMenuView: View {
             progressTile(icon: "🃏", title: "카드 도감", value: "\(profile.collection.intersection(CardCatalog.allKeys).count)/\(CardCatalog.entries.count)") {
                 showCollection = true
             }
-            progressTile(icon: "🎒", title: "퍽", value: "\((profile.equipped ?? []).count)/\(MetaPerk.slots)") {
+            progressTile(icon: "🎒", title: "퍽", value: "\((profile.perksUnlocked ?? []).count)/\(MetaPerk.allCases.count)") {
                 showPerks = true
             }
         }
@@ -313,8 +324,9 @@ struct CollectionView: View {
     }
 }
 
-// MARK: - 퍽 장착
+// MARK: - 퍽
 
+/// 퍽 보기 (메인 화면): 진행 중인 판의 퍽은 판이 끝날 때까지 바꿀 수 없어요
 struct PerkSheet: View {
     let store: SaveStore
     let slot: Int
@@ -322,50 +334,101 @@ struct PerkSheet: View {
 
     var body: some View {
         let p = store.profile(slot)
-        let eq = p.equipped ?? [], unlocked = p.perksUnlocked ?? []
+        let unlocked = p.perksUnlocked ?? []
+        let mine = p.run?.perks ?? []
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                SheetHeader(title: "퍽", subtitle: "슬롯 \(slot + 1) · 장착 \(eq.count)/\(MetaPerk.slots) · 해금 \(unlocked.count)/\(MetaPerk.allCases.count)") { dismiss() }
-                Text("최대 \(MetaPerk.slots)개까지 장착해요. 새 게임을 시작할 때 적용돼요. 더 깊이 내려갈수록 하나씩 해금돼요 (최고 \(MetaPerk.depthText(max(1, p.stats.maxDepth ?? 0)))).")
-                    .font(.footnote).foregroundStyle(Theme.muted)
-                ForEach(MetaPerk.allCases) { k in row(k, open: unlocked.contains(k.rawValue), on: eq.contains(k.rawValue), full: eq.count >= MetaPerk.slots) }
+                SheetHeader(title: "퍽", subtitle: "슬롯 \(slot + 1) · 해금 \(unlocked.count)/\(MetaPerk.allCases.count)") { dismiss() }
+                Text((p.run != nil
+                      ? "이번 판에 장착한 퍽은 \(mine.count)개예요. 판이 끝나야 바꿀 수 있어요."
+                      : "새 게임을 시작할 때 \(MetaPerk.slots)개까지 골라요.")
+                     + " 더 깊이 내려갈수록 하나씩 해금돼요 (최고 \(MetaPerk.depthText(max(1, p.stats.maxDepth ?? 0))))."
+                )
+                .font(.footnote).foregroundStyle(Theme.muted)
+                ForEach(MetaPerk.allCases) { k in
+                    let open = unlocked.contains(k.rawValue)
+                    PerkRow(perk: k, open: open, on: mine.contains(k.rawValue),
+                            tag: !open ? "\(MetaPerk.depthText(k.depth)) 도달 시 해금" : mine.contains(k.rawValue) ? "이번 판" : "")
+                }
             }
             .padding(18)
         }
         .background(PaperBackground())
     }
+}
 
-    private func row(_ k: MetaPerk, open: Bool, on: Bool, full: Bool) -> some View {
-        Button {
-            store.update(slot) { p in
-                var eq = p.equipped ?? []
-                if let i = eq.firstIndex(of: k.rawValue) { eq.remove(at: i) }
-                else if eq.count < MetaPerk.slots { eq.append(k.rawValue) }
-                p.equipped = eq
-            }
-            Sound.shared.play(.place)
-        } label: {
-            HStack(spacing: 12) {
-                Text(open ? k.icon : "🔒")
-                    .font(.title2)
-                    .frame(width: 44, height: 44)
-                    .background(on ? Theme.hl : Theme.paper, in: .circle)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(k.name).font(.body.weight(.semibold)).foregroundStyle(Theme.ink)
-                    Text(k.desc).font(.footnote).foregroundStyle(Theme.muted).multilineTextAlignment(.leading)
+/// 새 게임을 시작하기 전에 이번 판에 쓸 퍽을 골라요 (판이 끝날 때까지 못 바꿔요)
+struct PerkPickSheet: View {
+    let getProfile: () -> SlotProfile
+    let setEquipped: ([String]) -> Void
+    let onStart: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    /// 해금한 퍽이 하나라도 있으면 시작 전에 골라요
+    static func needed(_ p: SlotProfile) -> Bool { !(p.perksUnlocked ?? []).isEmpty }
+
+    var body: some View {
+        let p = getProfile()
+        let unlocked = p.perksUnlocked ?? []
+        // 지난번 고른 것을 기본으로, 해금한 것만 남겨요
+        let eq = Array((p.equipped ?? []).filter { unlocked.contains($0) }.prefix(MetaPerk.slots))
+        let locked = MetaPerk.allCases.count - unlocked.count
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
+                SheetHeader(title: "퍽 고르기", subtitle: "이번 판에 쓸 퍽을 \(MetaPerk.slots)개까지 골라요 (\(eq.count)/\(MetaPerk.slots)). 판이 끝날 때까지 바꿀 수 없어요.") { dismiss() }
+                ForEach(MetaPerk.allCases.filter { unlocked.contains($0.rawValue) }) { k in
+                    let on = eq.contains(k.rawValue)
+                    Button {
+                        var next = eq
+                        if let i = next.firstIndex(of: k.rawValue) { next.remove(at: i) }
+                        else if next.count < MetaPerk.slots { next.append(k.rawValue) }
+                        setEquipped(next)
+                        Sound.shared.play(.place)
+                    } label: {
+                        PerkRow(perk: k, open: true, on: on, tag: on ? "장착" : eq.count >= MetaPerk.slots ? "" : "고르기")
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(on ? .isSelected : [])
                 }
-                Spacer(minLength: 0)
-                Text(!open ? "\(MetaPerk.depthText(k.depth)) 도달 시 해금" : on ? "장착 중" : full ? "" : "장착")
-                    .font(.caption.weight(.semibold)).foregroundStyle(Theme.red)
+                if locked > 0 {
+                    Text("아직 잠긴 퍽 \(locked)개는 더 깊이 내려가면 해금돼요.").font(.footnote).foregroundStyle(Theme.muted)
+                }
+                Button(eq.isEmpty ? "퍽 없이 시작" : "이 퍽 \(eq.count)개로 시작") {
+                    setEquipped(eq)
+                    dismiss()
+                    onStart()
+                }
+                .buttonStyle(MainButtonStyle())
             }
-            .padding(10)
-            .background(Theme.card, in: .rect(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(on ? Theme.ink : Theme.edge, lineWidth: 2))
-            .opacity(open ? 1 : 0.55)
+            .padding(18)
         }
-        .buttonStyle(.plain)
-        .disabled(!open)
-        .accessibilityAddTraits(on ? .isSelected : [])
+        .background(PaperBackground())
+    }
+}
+
+struct PerkRow: View {
+    let perk: MetaPerk
+    let open: Bool
+    let on: Bool
+    let tag: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(open ? perk.icon : "🔒")
+                .font(.title2)
+                .frame(width: 44, height: 44)
+                .background(on ? Theme.hl : Theme.paper, in: .circle)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(perk.name).font(.body.weight(.semibold)).foregroundStyle(Theme.ink)
+                Text(perk.desc).font(.footnote).foregroundStyle(Theme.muted).multilineTextAlignment(.leading)
+            }
+            Spacer(minLength: 0)
+            Text(tag).font(.caption.weight(.semibold)).foregroundStyle(Theme.red)
+        }
+        .padding(10)
+        .background(Theme.card, in: .rect(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(on ? Theme.ink : Theme.edge, lineWidth: 2))
+        .opacity(open ? 1 : 0.55)
     }
 }
 
