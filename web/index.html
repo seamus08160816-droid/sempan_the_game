@@ -353,7 +353,10 @@ const CFG = {
   actLen: 10,
   shopRate: 0.22, eliteRate: 0.15,
   hand: 8, plays: 4, discards: 3,
-  corePerkRate: 0.35,                  // 손패·계산 +1 특전이 뽑혔을 때 실제로 나올 확률
+  handPerkRate: 0.12, handMax: 10,     // 손패 +1 특전: 뽑혔을 때 실제로 나올 확률, 손패 상한
+  discardPerkRate: 0.25, discardMax: 5, // 버리기 +1 특전: 확률, 상한
+  trPerkRate: 0.3,                     // 변신 특전: 뽑혔을 때 실제로 나올 확률 (시뮬레이션으로 맞춰요)
+  shopTrRate: 0.35,                    // 상점 숫자 카드가 변신 상태로 나올 확률
   maxLen: 5,
   fireBase: 10, firePow: 0.8,
   luckChance: 0.25,
@@ -914,9 +917,24 @@ class Game {
         link();
       }
     }
-    // 막마다 상점 하나는 보장
-    const mid = floors.slice(2, CFG.actLen - 1);
-    if (!mid.some(r => r.some(n => n.type === 'shop'))) pick(pick(mid)).type = 'shop';
+    const at = (f, id) => floors[f].find(m => m.id === id);
+    // 상점에서 나가는 길이 모두 상점이면 상점에 연달아 들어가야 해요. 그중 하나를 몹으로 바꿔요
+    floors.forEach((row, f) => row.forEach(n => {
+      if (n.type !== 'shop' || f + 1 >= floors.length) return;
+      const nexts = n.next.map(id => at(f + 1, id));
+      if (nexts.every(m => m.type === 'shop')) pick(nexts).type = 'mob';
+    }));
+    // 막마다 상점 하나는 보장 (상점이 연달아 강제되지 않는 칸에만 놓아요)
+    const midIdx = Array.from({ length: CFG.actLen - 3 }, (_, k) => k + 2);
+    if (!midIdx.some(f => floors[f].some(n => n.type === 'shop'))) {
+      const safe = [];
+      midIdx.forEach(f => floors[f].forEach(x => {
+        const exitsAllShop = x.next.every(id => at(f + 1, id).type === 'shop');
+        const forcesParent = floors[f - 1].some(p => p.type === 'shop' && p.next.includes(x.id) && p.next.every(id => id === x.id || at(f, id).type === 'shop'));
+        if (!exitsAllShop && !forcesParent) safe.push(x);
+      }));
+      if (safe.length) pick(safe).type = 'shop';
+    }
     floors.flat().forEach(n => { n.name = n.type === 'shop' ? '상점' : pick(MOBS[n.type]); });
     return floors;
   }
@@ -1356,16 +1374,17 @@ class Game {
       return { kind: 'transform', tr: 'tet', cardID: c.id, title: `숫자 ${faceText(c)}에 테트레이션`, desc: `보스 보상: 3↑↑n으로 변신해 계산 값이 ${fmt(t.f(Math.min(c.v, t.cap)))}이 돼요 (n은 ${t.cap}까지)` };
     };
     // 손패·계산 +1은 판을 크게 바꾸므로 뽑혀도 일정 확률로만 나와요
-    const rare = () => Math.random() < CFG.corePerkRate;
+    const chance = p => Math.random() < p;
     const gens = [
       evolve, evolve,
       upNum, upNum,
       enchant('gold'), enchant('fire'), enchant('fire'), enchant('luck'),
       opPerk('amp'), opPerk('stack'), opPerk('flip'), opPerk('exact'), opPerk('amp'), opPerk('exact'),
-      ...R.unlockedTR(run).flatMap(t => [trPerk(t), trPerk(t)]),
-      () => run.hand < 10 && rare() ? { kind: 'handSize', glyph: '손+1', title: '손패 +1장', desc: '한 번에 들고 있는 카드가 늘어요' } : null,
-      () => run.plays < 6 && rare() ? { kind: 'plays', glyph: '계산', title: '계산 기회 +1', desc: '전투마다 한 번 더 계산할 수 있어요' } : null,
-      () => run.discards < 6 ? { kind: 'discards', glyph: '버림', title: '버리기 +1', desc: '전투마다 한 번 더 버릴 수 있어요' } : null
+      // 변신은 해금된 것마다 한 칸씩, 뽑혀도 일정 확률로만 나와요 (막이 오를수록 너무 많아지지 않게)
+      ...R.unlockedTR(run).map(t => () => chance(CFG.trPerkRate) ? trPerk(t)() : null),
+      // 손패·버리기 +1은 판을 크게 바꿔서 드물게, 상한까지만 나와요 (계산 기회 +1은 없어요)
+      () => run.hand < CFG.handMax && chance(CFG.handPerkRate) ? { kind: 'handSize', glyph: '손+1', title: '손패 +1장', desc: '한 번에 들고 있는 카드가 늘어요' } : null,
+      () => run.discards < CFG.discardMax && chance(CFG.discardPerkRate) ? { kind: 'discards', glyph: '버림', title: '버리기 +1', desc: '전투마다 한 번 더 버릴 수 있어요' } : null
     ];
     const node = this.fightNode;
     // 정예 사냥꾼: 정예를 잡으면 선택지 4개
@@ -1439,7 +1458,7 @@ class Game {
     const items = [], trs = R.unlockedTR(this.run);
     for (let i = 0; i < 3; i++) {
       const c = this.mk('num', 1 + Math.floor(Math.random() * 12));
-      if (trs.length && Math.random() < 0.35) c.tr = pick(trs).key;
+      if (trs.length && Math.random() < CFG.shopTrRate) c.tr = pick(trs).key;
       if (Math.random() < 0.35) c.enh.push(pick(['gold', 'fire', 'fire', 'luck']));
       items.push(c);
     }

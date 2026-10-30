@@ -16,7 +16,12 @@ enum CFG {
     static let hand = 8
     static let plays = 4
     static let discards = 3
-    static let corePerkRate = 0.35                    // 손패·계산 +1 특전이 뽑혔을 때 실제로 나올 확률
+    static let handPerkRate = 0.12                    // 손패 +1 특전이 뽑혔을 때 실제로 나올 확률
+    static let handMax = 10                           // 손패 상한
+    static let discardPerkRate = 0.25                 // 버리기 +1 특전 확률
+    static let discardMax = 5                         // 버리기 상한
+    static let trPerkRate = 0.3                       // 변신 특전이 뽑혔을 때 실제로 나올 확률 (시뮬레이션으로 맞췄어요)
+    static let shopTrRate = 0.35                      // 상점 숫자 카드가 변신 상태로 나올 확률
     static let maxLen = 5
     static let fireBase: Double = 10
     static let firePow: Double = 0.8

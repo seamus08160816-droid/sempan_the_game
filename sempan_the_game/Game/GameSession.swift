@@ -251,11 +251,30 @@ final class GameSession {
                 link()
             }
         }
-        // 막마다 상점 하나는 보장
+        // 상점에서 나가는 길이 모두 상점이면 상점에 연달아 들어가야 해요. 그중 하나를 몹으로 바꿔요
+        for f in floors.indices.dropLast() {
+            for n in floors[f] where n.type == .shop {
+                let nexts = floors[f + 1].indices.filter { n.next.contains(floors[f + 1][$0].id) }
+                if !nexts.isEmpty, nexts.allSatisfy({ floors[f + 1][$0].type == .shop }), let k = nexts.randomElement() {
+                    floors[f + 1][k].type = .mob
+                }
+            }
+        }
+        // 막마다 상점 하나는 보장 (상점이 연달아 강제되지 않는 칸에만 놓아요)
         let mid = Array(2..<(CFG.actLen - 1))
-        if !mid.contains(where: { fi in floors[fi].contains { $0.type == .shop } }),
-           let fi = mid.randomElement(), let ni = floors[fi].indices.randomElement() {
-            floors[fi][ni].type = .shop
+        if !mid.contains(where: { fi in floors[fi].contains { $0.type == .shop } }) {
+            func type(_ f: Int, _ id: String) -> NodeType? { floors[f].first { $0.id == id }?.type }
+            var safe: [(Int, Int)] = []
+            for f in mid {
+                for (i, x) in floors[f].enumerated() {
+                    let exitsAllShop = x.next.allSatisfy { type(f + 1, $0) == .shop }
+                    let forcesParent = floors[f - 1].contains { p in
+                        p.type == .shop && p.next.contains(x.id) && p.next.allSatisfy { $0 == x.id || type(f, $0) == .shop }
+                    }
+                    if !exitsAllShop && !forcesParent { safe.append((f, i)) }
+                }
+            }
+            if let (f, i) = safe.randomElement() { floors[f][i].type = .shop }
         }
         for f in floors.indices {
             for i in floors[f].indices { floors[f][i].name = MobNames.random(for: floors[f][i].type) }
@@ -742,20 +761,21 @@ final class GameSession {
             guard let c = deck.filter({ $0.kind == .num && $0.tr != .tet && t.apply(min($0.v, t.cap)) > $0.numVal }).randomElement() else { return nil }
             return Perk(kind: .transform(t), cardID: c.id, title: "숫자 \(c.faceText)에 테트레이션", desc: "보스 보상: 3↑↑n으로 변신해 계산 값이 \(Fmt.n(t.apply(min(c.v, t.cap))))이 돼요 (n은 \(t.cap)까지)")
         }
-        let hand = run.hand, plays = run.plays, discards = run.discards
+        let hand = run.hand, discards = run.discards
         var gens: [() -> Perk?] = [
             evolve, evolve,
             upNum, upNum,
             enchant(.gold), enchant(.fire), enchant(.fire), enchant(.luck),
             opPerk(.amp), opPerk(.stack), opPerk(.flip), opPerk(.exact), opPerk(.amp), opPerk(.exact)
         ]
-        for t in run.unlockedTR { gens += [trPerk(t), trPerk(t)] }
+        // 변신은 해금된 것마다 한 칸씩, 뽑혀도 일정 확률로만 나와요 (막이 오를수록 너무 많아지지 않게)
+        for t in run.unlockedTR { gens.append { Double.random(in: 0..<1) < CFG.trPerkRate ? trPerk(t)() : nil } }
         // 손패·계산 +1은 판을 크게 바꾸므로 뽑혀도 일정 확률로만 나와요
-        let rare = { Double.random(in: 0..<1) < CFG.corePerkRate }
+        let chance = { (p: Double) in Double.random(in: 0..<1) < p }
         gens += [
-            { hand < 10 && rare() ? Perk(kind: .handSize, glyph: "손+1", title: "손패 +1장", desc: "한 번에 들고 있는 카드가 늘어요") : nil },
-            { plays < 6 && rare() ? Perk(kind: .plays, glyph: "계산", title: "계산 기회 +1", desc: "전투마다 한 번 더 계산할 수 있어요") : nil },
-            { discards < 6 ? Perk(kind: .discards, glyph: "버림", title: "버리기 +1", desc: "전투마다 한 번 더 버릴 수 있어요") : nil }
+            // 손패·버리기 +1은 판을 크게 바꿔서 드물게, 상한까지만 나와요 (계산 기회 +1은 없어요)
+            { hand < CFG.handMax && chance(CFG.handPerkRate) ? Perk(kind: .handSize, glyph: "손+1", title: "손패 +1장", desc: "한 번에 들고 있는 카드가 늘어요") : nil },
+            { discards < CFG.discardMax && chance(CFG.discardPerkRate) ? Perk(kind: .discards, glyph: "버림", title: "버리기 +1", desc: "전투마다 한 번 더 버릴 수 있어요") : nil }
         ]
         let node = fightNode
         // 정예 사냥꾼: 정예를 잡으면 선택지 4개
@@ -848,7 +868,7 @@ final class GameSession {
         let trs = run.unlockedTR
         for _ in 0..<3 {
             var c = mk(.num, num: Int.random(in: 1...12))
-            if !trs.isEmpty && Double.random(in: 0..<1) < 0.35 { c.tr = trs.randomElement() }
+            if !trs.isEmpty && Double.random(in: 0..<1) < CFG.shopTrRate { c.tr = trs.randomElement() }
             if Double.random(in: 0..<1) < 0.35, let e = [Enh.gold, .fire, .fire, .luck].randomElement() { c.enh.append(e) }
             items.append(c)
         }
