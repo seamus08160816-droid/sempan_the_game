@@ -11,6 +11,7 @@ struct MainMenuView: View {
     @State private var showAchievements = false
     @State private var showCollection = false
     @State private var showSound = false
+    @State private var showPerks = false
 
     private var profile: SlotProfile { store.profile(selected) }
 
@@ -49,6 +50,7 @@ struct MainMenuView: View {
         }
         .sheet(isPresented: $showAchievements) { AchievementsView(profile: profile, slot: selected) }
         .sheet(isPresented: $showCollection) { CollectionView(profile: profile, slot: selected) }
+        .sheet(isPresented: $showPerks) { PerkSheet(store: store, slot: selected) }
     }
 
     private var title: some View {
@@ -159,6 +161,9 @@ struct MainMenuView: View {
             }
             progressTile(icon: "🃏", title: "카드 도감", value: "\(profile.collection.intersection(CardCatalog.allKeys).count)/\(CardCatalog.entries.count)") {
                 showCollection = true
+            }
+            progressTile(icon: "🎒", title: "퍽", value: "\((profile.equipped ?? []).count)/\(MetaPerk.slots)") {
+                showPerks = true
             }
         }
     }
@@ -305,6 +310,62 @@ struct CollectionView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - 퍽 장착
+
+struct PerkSheet: View {
+    let store: SaveStore
+    let slot: Int
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        let p = store.profile(slot)
+        let eq = p.equipped ?? [], unlocked = p.perksUnlocked ?? []
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
+                SheetHeader(title: "퍽", subtitle: "슬롯 \(slot + 1) · 장착 \(eq.count)/\(MetaPerk.slots) · 해금 \(unlocked.count)/\(MetaPerk.allCases.count)") { dismiss() }
+                Text("최대 \(MetaPerk.slots)개까지 장착해요. 새 게임을 시작할 때 적용돼요. 더 깊이 내려갈수록 하나씩 해금돼요 (최고 \(MetaPerk.depthText(max(1, p.stats.maxDepth ?? 0)))).")
+                    .font(.footnote).foregroundStyle(Theme.muted)
+                ForEach(MetaPerk.allCases) { k in row(k, open: unlocked.contains(k.rawValue), on: eq.contains(k.rawValue), full: eq.count >= MetaPerk.slots) }
+            }
+            .padding(18)
+        }
+        .background(PaperBackground())
+    }
+
+    private func row(_ k: MetaPerk, open: Bool, on: Bool, full: Bool) -> some View {
+        Button {
+            store.update(slot) { p in
+                var eq = p.equipped ?? []
+                if let i = eq.firstIndex(of: k.rawValue) { eq.remove(at: i) }
+                else if eq.count < MetaPerk.slots { eq.append(k.rawValue) }
+                p.equipped = eq
+            }
+            Sound.shared.play(.place)
+        } label: {
+            HStack(spacing: 12) {
+                Text(open ? k.icon : "🔒")
+                    .font(.title2)
+                    .frame(width: 44, height: 44)
+                    .background(on ? Theme.hl : Theme.paper, in: .circle)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(k.name).font(.body.weight(.semibold)).foregroundStyle(Theme.ink)
+                    Text(k.desc).font(.footnote).foregroundStyle(Theme.muted).multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 0)
+                Text(!open ? "\(MetaPerk.depthText(k.depth)) 도달 시 해금" : on ? "장착 중" : full ? "" : "장착")
+                    .font(.caption.weight(.semibold)).foregroundStyle(Theme.red)
+            }
+            .padding(10)
+            .background(Theme.card, in: .rect(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(on ? Theme.ink : Theme.edge, lineWidth: 2))
+            .opacity(open ? 1 : 0.55)
+        }
+        .buttonStyle(.plain)
+        .disabled(!open)
+        .accessibilityAddTraits(on ? .isSelected : [])
     }
 }
 

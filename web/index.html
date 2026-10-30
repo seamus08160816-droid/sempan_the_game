@@ -69,7 +69,7 @@ header .gold b{font-family:"Gaegu",cursive; font-size:1.4rem; color:var(--text)}
 .logo p{margin:6px 0 0; font-size:.9rem; color:var(--muted)}
 .logo .eq{display:flex; justify-content:center; align-items:center; gap:6px; margin-top:12px}
 .logo .eq .card{width:44px; font-size:26px}
-.logo .eq span{font-size:1.9rem; color:var(--red)}
+.logo .eq > span{font-size:1.9rem; color:var(--red)}
 .slot-row{display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:10px; background:var(--card); border:2px solid var(--edge); border-radius:12px; cursor:pointer}
 .slot-row.sel{border-color:var(--ink); border-width:2.5px}
 .slot-row .num{flex:none; width:44px; height:44px; border-radius:50%; border:2px solid var(--ink); display:grid; place-items:center; font-size:1.75rem; color:var(--ink); background:var(--card)}
@@ -79,7 +79,7 @@ header .gold b{font-family:"Gaegu",cursive; font-size:1.4rem; color:var(--text)}
 .slot-row .t.empty{color:var(--muted)}
 .slot-row small{font-size:.75rem; color:var(--muted)}
 .slot-row .del{flex:none; width:36px; height:36px; border:0; background:none; color:var(--red); font-size:1.1rem; cursor:pointer}
-.tiles{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.tiles{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
 .tile{display:grid; justify-items:center; gap:4px; padding:14px 6px; background:var(--card); border:2px solid var(--ink); border-radius:12px; box-shadow:0 3px 0 var(--ink); cursor:pointer}
 .tile .ic{font-size:2rem}
 .tile b{font-size:.9rem; color:var(--ink)}
@@ -100,7 +100,10 @@ header .gold b{font-family:"Gaegu",cursive; font-size:1.4rem; color:var(--text)}
 .card.e-fire{border:2px solid var(--red)}
 .card.e-luck{border:2px dashed var(--ink)}
 .card.trans::after{content:""; position:absolute; inset:2px; border:3px solid var(--hl); border-radius:6px; pointer-events:none}
-.bds{position:absolute; left:2px; right:2px; bottom:3px; display:flex; justify-content:center; gap:2px; overflow:hidden}
+.bds{position:absolute; left:2px; right:2px; bottom:3px; display:flex; flex-wrap:wrap; justify-content:center; gap:2px}
+/* 배지가 3개 이상이면 작게 줄여 두 줄로 쌓아요 (아래에서 위로) */
+.bds.many{gap:1px}
+.bds.many .bd{font-size:6.5px; padding:0 2px}
 .bd{font-family:system-ui,sans-serif; font-style:normal; font-size:8px; font-weight:600; line-height:1.3; padding:0 3px; border-radius:3px; background:var(--paper); color:var(--text); border:1px solid var(--edge); white-space:nowrap}
 .bd-fire{color:var(--red); border-color:var(--red)}
 .bd-gold{background:var(--hlText); color:var(--hl); border-color:var(--hlText)}
@@ -187,12 +190,13 @@ details p{margin:.4em 0}
 .item.picking{border-color:var(--red)}
 .item .card{width:52px; flex:none; font-size:26px}
 .item .tx{flex:1; min-width:0}
-.item b{display:block; color:var(--ink); font-size:.9rem}
-.item small{display:block; color:var(--muted); font-size:.75rem; line-height:1.4}
+.item .tx b{display:block; color:var(--ink); font-size:.9rem}
+.item .tx small{display:block; color:var(--muted); font-size:.75rem; line-height:1.4}
 .buy{flex:none; font-size:.8rem; font-weight:600; padding:8px 10px; border-radius:8px; border:0; background:var(--ink); color:var(--paper); cursor:pointer; white-space:nowrap}
 .buy:disabled{opacity:.35; cursor:not-allowed}
 .deckgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(48px,1fr)); gap:6px}
 .deckgrid .card{font-size:24px}
+.card.dim{opacity:.32; filter:grayscale(1)}
 
 /* 시트 */
 .overlay{position:fixed; inset:0; background:var(--scrim); overflow:auto; z-index:20; display:flex; padding:16px; padding-top:calc(16px + env(safe-area-inset-top,0px)); padding-bottom:calc(16px + env(safe-area-inset-bottom,0px)); animation:fade .25s ease-out}
@@ -212,8 +216,8 @@ details p{margin:.4em 0}
 .offer:hover{border-color:var(--ink)}
 .offer .vis{width:56px; flex:none}
 .offer .card{font-size:26px}
-.offer b{display:block; font-size:1rem; color:var(--ink)}
-.offer small{display:block; color:var(--muted); font-size:.8rem; margin-top:2px}
+.offer .tx b{display:block; font-size:1rem; color:var(--ink)}
+.offer .tx small{display:block; color:var(--muted); font-size:.8rem; margin-top:2px}
 .rule{width:56px; height:56px; border:2px solid var(--red); border-radius:50%; display:grid; place-items:center; color:var(--red); font-size:1.05rem; transform:rotate(-8deg)}
 .rw{display:flex; flex-direction:column; gap:12px}
 .stats{display:grid; grid-template-columns:auto 1fr; gap:6px 14px; margin:0; align-items:baseline}
@@ -236,11 +240,25 @@ details p{margin:.4em 0}
 .colcell{border:0; background:none; padding:0; cursor:pointer; display:grid; gap:3px}
 .colcell .card{font-size:26px}
 .colcell .ghostcard{font-family:"Gaegu",cursive; font-size:26px; color:var(--edge)}
-.colcell span{font-size:9px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.colcell > span{font-size:9px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .progress{height:6px; border-radius:3px; background:var(--edge); overflow:hidden}
 .progress div{height:100%; background:var(--red)}
 .dialog .sheet{max-width:340px}
 .dialog .sheet h3{margin:0; font-size:1.05rem; color:var(--text)}
+
+/* 퍽 */
+.perk{display:flex; gap:12px; align-items:center; width:100%; text-align:left; padding:10px; background:var(--card); border:2px solid var(--edge); border-radius:10px; cursor:pointer}
+.perk.on{border-color:var(--ink); box-shadow:0 3px 0 var(--ink)}
+.perk.locked{cursor:default; opacity:.55}
+.perk .ic{flex:none; width:44px; height:44px; border-radius:50%; display:grid; place-items:center; font-size:1.5rem; background:var(--paper)}
+.perk.on .ic{background:var(--hl)}
+.perk .tx{flex:1; min-width:0}
+.perk b{display:block; font-size:.95rem; color:var(--ink)}
+.perk small{display:block; font-size:.78rem; color:var(--muted); line-height:1.4}
+.perk em{flex:none; font-style:normal; font-size:.75rem; font-weight:600; color:var(--red)}
+.perkbar{display:flex; flex-wrap:wrap; gap:6px}
+.perkchip{font-size:.75rem; font-weight:600; color:var(--ink); background:var(--card); border:2px solid var(--ink); border-radius:999px; padding:5px 10px; cursor:pointer}
+.perkchip:disabled{opacity:.4; cursor:not-allowed}
 
 /* 소리 버튼과 설정 */
 .iconbtn{flex:none; width:32px; height:32px; border:2px solid var(--ink); border-radius:50%; background:var(--card); color:var(--ink); display:grid; place-items:center; cursor:pointer; padding:0; font-size:14px; line-height:1}
@@ -325,6 +343,7 @@ const CFG = {
   actGrowth: [1.30, 1.40, 1.50, 1.55], // 막별 층당 체력 배율
   growthAfter: 1.6,                    // 표 이후 막의 층당 배율
   eliteMult: 1.5, bossMult: 1.8,
+  midHP: { 4: 1.2, 5: 1.25, 6: 1.3 },  // 중반부(4~6막) 몹 체력 추가 배율. 보상은 그대로라 실제로 어려워져요
   actLen: 10,
   shopRate: 0.22, eliteRate: 0.15,
   hand: 8, plays: 4, discards: 3,
@@ -336,9 +355,11 @@ const CFG = {
   econPow: 1,
   killGold: 5, discGold: 3, playGold: 6,
   goldA: 8, goldK: 0.25, goldCap: 20,
-  eliteGoldMult: 1, bossGoldMult: 1
+  eliteGoldMult: 1, bossGoldMult: 1,
+  powCap: 3,                           // ^ 카드 지수 상한
+  logAct: 9                            // 이 막부터 로그 단계 (차원 상승)
 };
-const VERSION = '1.0.0-beta.1';
+const VERSION = '1.0.0-beta.2';
 
 // Swift의 rounded()처럼 0에서 먼 쪽으로 반올림해요
 const rnd = x => Math.sign(x) * Math.round(Math.abs(x));
@@ -350,8 +371,10 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const wait = ms => new Promise(r => setTimeout(r, reduceMotion ? Math.min(ms, 60) : ms));
 
 // ===== 카드 구성 요소 =====
-const SYM = { '+': '+', '-': '−', '*': '×', '/': '÷' };
-const OP_ORDER = '+-/*';
+const SYM = { '+': '+', '-': '−', '*': '×', '/': '÷', '^': '^' };
+const OP_ORDER = '+-/*^';
+// 강화할 수 없는 기호 (강력한 대신)
+const PLAIN_OPS = ['*', '^'];
 const ENH = {
   gold:  { badge: '×2',  name: '황금', desc: '수식에 쓰면 최종 결과 ×2', value: 18 },
   fire:  { badge: '+',   name: '불꽃', desc: '수식에 쓰면 최종 결과에 더해요. 적 체력과 함께 커져요', value: 8 },
@@ -368,28 +391,106 @@ const isOpPerk = e => OP_PERKS.includes(e);
 const divides = (a, b) => a !== 0 && b !== 0 && Math.abs(a % b) < 1e-9;
 
 function fact(n) { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; }
-// 숫자 변신 강화. 막마다 하나씩 해금. cap은 변신에 넣는 값의 상한
+const superfact = n => { let r = 1; for (let k = 1; k <= n; k++) r *= fact(k); return r; };
+const hyperfact = n => { let r = 1; for (let k = 1; k <= n; k++) r *= Math.pow(k, k); return r; };
+const tetra3 = n => { let r = 1; for (let k = 0; k < n; k++) r = Math.pow(3, r); return r; };
+// 숫자 변신 강화. 막마다 하나씩 해금. cap은 변신에 넣는 값의 상한. special은 보스 보상으로만 나와요
 const TR = [
-  { key: 'sq',   name: '제곱',         act: 2, cap: 20, value: 14, f: n => n * n,                 txt: v => `${v}²`,  face: v => `${v}<sup>2</sup>` },
-  { key: 'pow2', name: '2의 거듭제곱', act: 3, cap: 15, value: 22, f: n => Math.pow(2, n),        txt: v => `2^${v}`, face: v => `<small>2</small><sup>${v}</sup>` },
-  { key: 'exp',  name: '자연지수',     act: 4, cap: 12, value: 32, f: n => rnd(Math.exp(n)),      txt: v => `e^${v}`, face: v => `<small>e</small><sup>${v}</sup>` },
-  { key: 'fact', name: '팩토리얼',     act: 5, cap: 10, value: 44, f: n => fact(Math.max(1, n)),  txt: v => `${v}!`,  face: v => `${v}<small>!</small>` }
+  { key: 'sq',    name: '제곱',          act: 2, cap: 20, value: 14, f: n => n * n,                 txt: v => `${v}²`,     face: v => `${v}<sup>2</sup>` },
+  { key: 'pow2',  name: '2의 거듭제곱',  act: 3, cap: 15, value: 22, f: n => Math.pow(2, n),        txt: v => `2^${v}`,    face: v => `2<sup>${v}</sup>` },
+  { key: 'exp',   name: '자연지수',      act: 4, cap: 12, value: 32, f: n => rnd(Math.exp(n)),      txt: v => `e^${v}`,    face: v => `e<sup>${v}</sup>` },
+  { key: 'fact',  name: '팩토리얼',      act: 5, cap: 10, value: 44, f: n => fact(Math.max(1, n)),  txt: v => `${v}!`,     face: v => `${v}!` },
+  { key: 'self',  name: '자기거듭제곱',  act: 6, cap: 9,  value: 56, f: n => Math.pow(n, n),        txt: v => `${v}^${v}`, face: v => `${v}<sup>${v}</sup>` },
+  { key: 'sfact', name: '슈퍼팩토리얼',  act: 7, cap: 8,  value: 70, f: n => superfact(n),          txt: v => `sf(${v})`,  face: v => `sf<small>(${v})</small>` },
+  { key: 'hfact', name: '하이퍼팩토리얼', act: 8, cap: 7,  value: 85, f: n => hyperfact(n),          txt: v => `H(${v})`,   face: v => `H<small>(${v})</small>` },
+  { key: 'tet',   name: '테트레이션',    act: 6, cap: 3,  value: 60, f: n => tetra3(n), special: true, txt: v => `3↑↑${v}`, face: v => `3<small>↑↑</small>${v}` }
 ];
+
+// ===== 큰 수 =====
+// 1e300을 넘으면 log₁₀로 들고 다녀서 무한대가 되지 않아요. 작은 수는 그대로 계산해 1~8막은 정확해요.
+const BIG = 1e300;
+const N = {
+  of: v => ({ s: Math.sign(v), v, l: null }),
+  fromLog: (s, l) => s === 0 ? N.of(0) : l < 300 ? N.of(s * Math.pow(10, l)) : { s, v: null, l },
+  // |x|의 자릿수 (log₁₀|x|)
+  log: x => x.v !== null ? Math.log10(Math.abs(x.v)) : x.l,
+  small: x => x.v !== null,
+  num: x => x.v !== null ? x.v : x.s * Infinity,
+  neg: x => x.v !== null ? N.of(-x.v) : { s: -x.s, v: null, l: x.l },
+  add(a, b) {
+    if (a.s === 0) return b;
+    if (b.s === 0) return a;
+    if (N.small(a) && N.small(b) && Math.abs(a.v + b.v) < BIG) return N.of(a.v + b.v);
+    const la = N.log(a), lb = N.log(b);
+    const [hi, lo, sh] = la >= lb ? [la, lb, a.s] : [lb, la, b.s];
+    if (a.s === b.s) return N.fromLog(sh, hi + Math.log10(1 + Math.pow(10, lo - hi)));
+    if (hi - lo < 1e-12) return N.of(0);
+    return N.fromLog(sh, hi + Math.log10(1 - Math.pow(10, lo - hi)));
+  },
+  sub: (a, b) => N.add(a, N.neg(b)),
+  mul(a, b) {
+    if (a.s === 0 || b.s === 0) return N.of(0);
+    if (N.small(a) && N.small(b) && Math.abs(a.v * b.v) < BIG) return N.of(a.v * b.v);
+    return N.fromLog(a.s * b.s, N.log(a) + N.log(b));
+  },
+  div(a, b) {
+    if (b.s === 0 || a.s === 0) return N.of(0);
+    if (N.small(a) && N.small(b) && Math.abs(a.v / b.v) < BIG) return N.of(a.v / b.v);
+    return N.fromLog(a.s * b.s, N.log(a) - N.log(b));
+  },
+  // a^b. 지수는 ±powCap에서 멈춰요. 음수 밑은 지수가 홀수 정수일 때만 음수가 돼요
+  pow(a, b) {
+    const e = Math.max(-CFG.powCap, Math.min(CFG.powCap, N.num(b)));
+    if (a.s === 0) return N.of(0);
+    const sign = a.s < 0 && Number.isInteger(e) && Math.abs(e) % 2 === 1 ? -1 : 1;
+    if (N.small(a)) {
+      const r = Math.pow(Math.abs(a.v), e);
+      if (isFinite(r) && r < BIG) return N.of(sign * r);
+    }
+    return N.fromLog(sign, e * N.log(a));
+  },
+  // 두 수가 정확히 나누어떨어지는지 (아주 큰 수는 확인할 수 없어 아니라고 봐요)
+  divides: (a, b) => N.small(a) && N.small(b) && Math.abs(a.v) < 1e15 && Math.abs(b.v) < 1e15 && divides(a.v, b.v),
+  fmt(x) {
+    if (x.v !== null) return fmt(x.v);
+    const e = Math.floor(x.l);
+    return `${(x.s * Math.pow(10, x.l - e)).toFixed(2)}×10^${e < 1e15 ? e.toLocaleString('ko-KR') : fmt(e)}`;
+  }
+};
 const trOf = c => c.tr ? TR.find(t => t.key === c.tr) : null;
 const trIndex = c => c.tr ? TR.findIndex(t => t.key === c.tr) : -1;
+const LADDER = TR.filter(t => !t.special);
 // 변신에 실제로 들어가는 n (상한에서 멈춰요)
 const trInput = c => { const t = trOf(c); return t ? Math.min(c.v, t.cap) : c.v; };
 const numVal = c => { const t = trOf(c); return t ? t.f(trInput(c)) : c.v; };
 const faceText = c => c.kind === 'op' ? SYM[c.op] : (trOf(c) ? trOf(c).txt(trInput(c)) : String(c.v));
 const cardLabel = c => c.kind === 'num' ? `숫자 ${faceText(c)}` : `${SYM[c.op]} 카드`;
 function baseValue(c) {
-  let v = c.kind === 'num' ? 6 + c.v : ({ '*': 30, '/': 12 }[c.op] || 10);
+  let v = c.kind === 'num' ? 6 + c.v : ({ '*': 30, '/': 12, '^': 45 }[c.op] || 10);
   c.enh.forEach(e => v += ENH[e].value);
   const t = trOf(c); if (t) v += t.value;
   return v;
 }
 const numberCard = (id, v) => ({ id, kind: 'num', v, op: null, enh: [], up: 0, tr: null, bonus: 0 });
 const symbolCard = (id, op) => ({ id, kind: 'op', v: 0, op, enh: [], up: 0, tr: null, bonus: 0 });
+
+// ===== 퍽 (판 밖에서 해금해 3개까지 장착) =====
+// 밸런스 기준: 막마다 상점을 한 번 공짜로 재입고하는 정도의 이득
+const PERK_SLOTS = 3;
+const PERKS = [
+  { key: 'restock',   icon: '🔄', name: '재입고',     depth: 3,  desc: '상점에서 막마다 한 번 무료로 물건을 새로 들여요' },
+  { key: 'allowance', icon: '👛', name: '비상금',     depth: 6,  desc: '막을 시작할 때 골드를 받아요 (물가 ×12)' },
+  { key: 'coupon',    icon: '🎟️', name: '할인권',     depth: 10, desc: '막마다 상점 첫 구매가 30% 싸요' },
+  { key: 'reroll',    icon: '🎲', name: '다시 뽑기',  depth: 13, desc: '막마다 한 번 특전 선택지를 새로 뽑아요' },
+  { key: 'sharpen',   icon: '✏️', name: '연필 깎기',  depth: 16, desc: '막마다 한 번 전투 중 손패를 모두 새로 뽑아요 (버리기를 쓰지 않아요)' },
+  { key: 'study',     icon: '📖', name: '예습',       depth: 20, desc: '전투 첫 손패에 숫자 카드가 4장 이상 들어와요' },
+  { key: 'interest',  icon: '🏦', name: '이자',       depth: 25, desc: '상점을 나갈 때 남은 골드의 10%를 받아요 (최대 물가 ×10)' },
+  { key: 'clover',    icon: '🍀', name: '네잎클로버', depth: 30, desc: '행운 강화가 터질 확률이 25%에서 35%로 올라요' },
+  { key: 'hunter',    icon: '🏹', name: '정예 사냥꾼', depth: 40, desc: '정예를 잡으면 특전 선택지가 4개씩 나와요' },
+  { key: 'grit',      icon: '💪', name: '뒷심',       depth: 50, desc: '막마다 한 번, 계산 기회를 다 썼을 때 체력이 20% 이하로 남았으면 한 번 더 계산해요' }
+];
+const perkOf = k => PERKS.find(p => p.key === k);
+const depthText = d => `${Math.ceil(d / CFG.actLen)}막 ${(d - 1) % CFG.actLen + 1}층`;
 
 // ===== 지도 =====
 const NODE = {
@@ -428,7 +529,9 @@ function newRun() {
   return {
     act: 1, map: [], floor: 0, curID: null, visited: [], depth: 1, deck: [], gold: 0, goldTotal: 0, kills: 0,
     hand: CFG.hand, plays: CFG.plays, discards: CFG.discards, bestPlay: 0, nextID: 0, phase: 'map', mapMsg: '',
-    fight: null, shop: null, reward: null, lastGold: null, over: null, startedAt: Date.now()
+    fight: null, shop: null, reward: null, lastGold: null, over: null, startedAt: Date.now(),
+    perks: [],      // 이번 판에 장착한 퍽 (시작할 때 정해져요)
+    perkUsed: {}    // 막마다 한 번 쓰는 퍽: 마지막으로 쓴 막
   };
 }
 const growthOf = act => act - 1 < CFG.actGrowth.length ? CFG.actGrowth[act - 1] : CFG.growthAfter;
@@ -439,11 +542,15 @@ function baseHPAt(depth) {
 }
 const R = {
   depthOf: (run, f) => (run.act - 1) * CFG.actLen + f,
-  econ: (run, f = run.floor) => Math.pow(baseHPAt(R.depthOf(run, Math.max(1, f))) / CFG.baseHP, CFG.econPow),
+  // 로그 단계(차원 상승 뒤)에서는 체력·물가 사다리를 1막부터 다시 올라요
+  isLog: run => run.act >= CFG.logAct,
+  ladderDepth: (run, f) => R.isLog(run) ? (run.act - CFG.logAct) * CFG.actLen + f : R.depthOf(run, f),
+  econ: (run, f = run.floor) => Math.pow(baseHPAt(R.ladderDepth(run, Math.max(1, f))) / CFG.baseHP, CFG.econPow),
   hpFor(run, f, type) {
-    let h = baseHPAt(R.depthOf(run, Math.max(1, f)));
+    let h = baseHPAt(R.ladderDepth(run, Math.max(1, f)));
     if (type === 'elite') h *= CFG.eliteMult;
     if (type === 'boss') h *= CFG.bossMult;
+    if (!R.isLog(run)) h *= CFG.midHP[run.act] || 1;
     return rnd(h / 10) * 10;
   },
   fireBonus: run => rnd(CFG.fireBase * Math.pow(R.econ(run), CFG.firePow)),
@@ -451,8 +558,14 @@ const R = {
   card: (run, id) => run.deck.find(c => c.id === id),
   node: (run, id) => id == null ? null : run.map.flat().find(n => n.id === id),
   reachable(run, n) { const cur = R.node(run, run.curID); return cur ? cur.next.includes(n.id) : n.floor === 1; },
-  unlockedTR: run => TR.filter(t => run.act >= t.act),
-  whereText: run => run.floor === 0 ? `${run.act}막 출발` : `${run.act}막 ${run.floor}층`
+  unlockedTR: run => LADDER.filter(t => run.act >= t.act),
+  actName: run => R.isLog(run) ? `로그 ${run.act - CFG.logAct + 1}막` : `${run.act}막`,
+  whereText: run => run.floor === 0 ? `${R.actName(run)} 출발` : `${R.actName(run)} ${run.floor}층`,
+  // 로그 단계의 체력은 10의 거듭제곱, 피해는 자릿수예요
+  hpText: (run, x) => R.isLog(run) ? `10^${fmt(x)}` : fmt(x),
+  dmgText: (run, x) => R.isLog(run) ? `${fmt(x)}자리` : fmt(x),
+  hasPerk: (run, k) => (run.perks || []).includes(k),
+  perkReady: (run, k) => R.hasPerk(run, k) && (run.perkUsed || {})[k] !== run.act
 };
 const hpUnit = (hp, type) => Math.pow(hp / CFG.baseHP, CFG.econPow) * (type === 'elite' ? CFG.eliteGoldMult : type === 'boss' ? CFG.bossGoldMult : 1);
 const overkillCap = (hp, type) => CFG.goldCap * hpUnit(hp, type);
@@ -463,7 +576,8 @@ const overkillGold = (over, hp, type) => rnd(Math.min(CFG.goldCap, CFG.goldA * M
 const CATALOG = (() => {
   const list = [];
   for (let n = 1; n <= 15; n++) list.push({ key: `num-${n}`, title: `숫자 ${n}`, desc: n <= 9 ? '기본 덱에 들어 있는 숫자예요' : '상점이나 강화로 얻는 큰 숫자예요', sample: numberCard(-n, n) });
-  ['+', '-', '*', '/'].forEach((op, i) => list.push({ key: `op-${op}`, title: `${SYM[op]} 카드`, desc: op === '*' ? '강력한 대신 강화할 수 없어요' : '기본 기호 카드예요', sample: symbolCard(-100 - i, op) }));
+  const opDesc = { '*': '강력한 대신 강화할 수 없어요', '^': `× 카드가 진화한 거듭제곱 카드예요. 지수는 ${CFG.powCap}까지 (6막부터)` };
+  ['+', '-', '*', '/', '^'].forEach((op, i) => list.push({ key: `op-${op}`, title: `${SYM[op]} 카드`, desc: opDesc[op] || '기본 기호 카드예요', sample: symbolCard(-100 - i, op) }));
   ENH_KEYS.forEach((e, i) => {
     const s = isOpPerk(e) ? symbolCard(-200 - i, ENH[e].op) : numberCard(-200 - i, 7);
     s.enh = [e];
@@ -472,7 +586,8 @@ const CATALOG = (() => {
   });
   TR.forEach((t, i) => {
     const s = numberCard(-300 - i, 5); s.tr = t.key;
-    list.push({ key: `tr-${t.key}`, title: `${t.name} 변신`, desc: `${t.act}막부터 나와요. 숫자 n을 ${t.txt('n')}으로 계산해요 (n은 ${t.cap}까지)`, sample: s });
+    const when = t.special ? `${t.act}막부터 보스를 잡으면 나와요` : `${t.act}막부터 나와요`;
+    list.push({ key: `tr-${t.key}`, title: `${t.name} 변신`, desc: `${when}. 숫자 n을 ${t.txt('n')}으로 계산해요 (n은 ${t.cap}까지)`, sample: s });
   });
   return list;
 })();
@@ -494,6 +609,7 @@ const ACHIEVEMENTS = [
   ['boss', '👑', '1막 돌파', '보스 처치하기', p => p.stats.bossKills >= 1],
   ['act3', '🧭', '깊은 곳으로', '3막에 도달하기', p => p.stats.maxAct >= 3],
   ['act5', '🏔️', '팩토리얼의 땅', '5막에 도달하기', p => p.stats.maxAct >= 5],
+  ['ascend', '🌌', '차원 상승', `로그 단계(${CFG.logAct}막)에 도달하기`, p => p.stats.maxAct >= CFG.logAct],
   ['hit1k', '💥', '천 단위', '한 방에 1,000 이상 피해 주기', p => p.stats.maxHit >= 1000],
   ['hit100k', '🔥', '십만 대군', '한 방에 10만 이상 피해 주기', p => p.stats.maxHit >= 100000],
   ['hit1e8', '🌋', '억 소리 나는', '한 방에 1억 이상 피해 주기', p => p.stats.maxHit >= 1e8],
@@ -513,8 +629,9 @@ const SLOT_COUNT = 3;
 function newProfile() {
   return {
     run: null, bestDepth: 0, bestSingle: 0,
-    stats: { runsStarted: 0, runsFinished: 0, kills: 0, eliteKills: 0, bossKills: 0, maxAct: 1, maxHit: 0, maxGold: 0, oneShots: 0, bigOverkills: 0, luckProcs: 0, cardsBought: 0 },
-    achievements: {}, collection: [], createdAt: Date.now(), updatedAt: Date.now()
+    stats: { runsStarted: 0, runsFinished: 0, kills: 0, eliteKills: 0, bossKills: 0, maxAct: 1, maxHit: 0, maxGold: 0, oneShots: 0, bigOverkills: 0, luckProcs: 0, cardsBought: 0, maxDepth: 0 },
+    achievements: {}, collection: [], createdAt: Date.now(), updatedAt: Date.now(),
+    perksUnlocked: [], equipped: []
   };
 }
 const Store = {
@@ -524,7 +641,14 @@ const Store = {
     for (let i = 0; i < SLOT_COUNT; i++) {
       try {
         const raw = localStorage.getItem(this.key(i));
-        this.slots[i] = raw ? Object.assign(newProfile(), JSON.parse(raw)) : null;
+        if (!raw) { this.slots[i] = null; continue; }
+        const p = Object.assign(newProfile(), JSON.parse(raw));
+        // 예전 저장에 없는 기록 항목은 기본값으로 채워요
+        p.stats = Object.assign(newProfile().stats, p.stats);
+        if (!p.stats.maxDepth) p.stats.maxDepth = Math.max(p.bestDepth || 0, p.run ? p.run.depth : 0);
+        // 예전 기록으로 이미 도달한 깊이의 퍽은 불러올 때 바로 해금해요
+        evaluatePerks(p);
+        this.slots[i] = p;
       } catch (e) { this.slots[i] = null; }
     }
   },
@@ -541,6 +665,13 @@ const Store = {
     try { localStorage.removeItem(this.key(i)); } catch (e) {}
   }
 };
+// 새로 해금한 퍽을 기록하고 돌려줘요
+function evaluatePerks(p) {
+  const out = PERKS.filter(k => p.stats.maxDepth >= k.depth && !p.perksUnlocked.includes(k.key));
+  out.forEach(k => p.perksUnlocked.push(k.key));
+  return out;
+}
+
 // 새로 달성한 업적을 기록하고 돌려줘요
 function evaluateAchievements(p) {
   const out = [];
@@ -656,10 +787,25 @@ class Game {
   get profile() { return Store.profile(this.slot); }
 
   updateProfile(change) {
-    let unlocked = [];
-    Store.update(this.slot, p => { change(p); unlocked = evaluateAchievements(p); });
+    let unlocked = [], perks = [];
+    Store.update(this.slot, p => { change(p); unlocked = evaluateAchievements(p); perks = evaluatePerks(p); });
     unlocked.forEach(a => pushToast(a.icon, '업적 달성!', a.title));
-    if (unlocked.length) Sound.play('fanfare');
+    // 한꺼번에 여럿 풀리면 (예전 기록으로 처음 열 때) 알림 하나로 묶어요
+    if (perks.length > 2) pushToast('🎒', '퍽 해금! 메인 화면에서 장착해요', `${perks.map(k => k.name).slice(0, 3).join(', ')} 외 ${perks.length - 3}개`);
+    else perks.forEach(k => pushToast(k.icon, '퍽 해금! 메인 화면에서 장착해요', k.name));
+    if (unlocked.length || perks.length) Sound.play('fanfare');
+  }
+
+  // ----- 퍽 -----
+  usePerk(k) { this.run.perkUsed[k] = this.run.act; }
+
+  // 막을 시작할 때 (1막 포함)
+  actStart() {
+    if (!R.hasPerk(this.run, 'allowance')) return '';
+    const g = rnd(12 * R.econ(this.run, 1));
+    this.run.gold += g;
+    this.run.goldTotal += g;
+    return ` 비상금 +${fmt(g)}골드.`;
   }
 
   // 진행 중인 판을 슬롯에 저장해요
@@ -670,6 +816,7 @@ class Game {
       p.run = snapshot;
       p.stats.maxGold = Math.max(p.stats.maxGold, snapshot.gold);
       p.stats.maxAct = Math.max(p.stats.maxAct, snapshot.act);
+      p.stats.maxDepth = Math.max(p.stats.maxDepth || 0, snapshot.depth);
     });
   }
 
@@ -704,7 +851,9 @@ class Game {
     this.run.deck = this.newDeck();
     this.run.map = this.genAct();
     const p = this.profile;
-    this.run.mapMsg = p.bestDepth > 0 ? `역대 기록: ${p.bestDepth}층까지, 한 방 ${fmt(p.bestSingle)}` : '1층에서 출발할 칸을 고르세요.';
+    // 장착한 퍽은 판을 시작할 때 정해져요
+    this.run.perks = (p.equipped || []).filter(k => (p.perksUnlocked || []).includes(k)).slice(0, PERK_SLOTS);
+    this.run.mapMsg = (p.bestDepth > 0 ? `역대 기록: ${p.bestDepth}층까지, 한 방 ${fmt(p.bestSingle)}.` : '1층에서 출발할 칸을 고르세요.') + this.actStart();
     this.updateProfile(p => p.stats.runsStarted++);
     this.collect(this.run.deck, true);
     this.save();
@@ -736,7 +885,7 @@ class Game {
       const row = [];
       for (let i = 0; i < n; i++) {
         const jit = (Math.random() - 0.5) * 8;
-        const x = n === 1 ? 54 + jit : 22 + 68 * (i / (n - 1)) + jit;
+        const x = n === 1 ? 52 + jit : 20 + 64 * (i / (n - 1)) + jit;
         let type = 'mob';
         if (f === CFG.actLen) type = 'boss';
         else if (f > 1) { const r = Math.random(); type = r < CFG.shopRate ? 'shop' : r < CFG.shopRate + CFG.eliteRate ? 'elite' : 'mob'; }
@@ -771,14 +920,7 @@ class Game {
     if (!R.reachable(this.run, n) || this.busy) return;
     if (n.type === 'boss') {
       // 보스 앞: 화면이 어두워지며 이름판이 꽂히고 무거운 종이 울려요
-      this.busy = true;
-      this.bossIntro = n;
-      paint();
-      await wait(350);
-      Sound.play('bell');
-      await wait(1900);
-      this.bossIntro = null;
-      this.busy = false;
+      await this.showIntro({ icon: '👑', title: n.name, sub: `${R.actName(this.run)} 보스 · 체력 ${R.hpText(this.run, R.hpFor(this.run, n.floor, 'boss'))}` });
     }
     this.run.curID = n.id;
     this.run.visited.push(n.id);
@@ -787,18 +929,42 @@ class Game {
     if (n.type === 'shop') this.openShop(); else this.startFight(n);
   }
 
+  // 화면을 덮는 등장 장면 (보스, 차원 상승)
+  async showIntro(intro) {
+    this.busy = true;
+    this.intro = intro;
+    paint();
+    await wait(350);
+    Sound.play('bell');
+    await wait(1900);
+    this.intro = null;
+    this.busy = false;
+  }
+
   afterNode(message) {
     let msg = message;
     const run = this.run;
     if (run.floor >= CFG.actLen) {
+      // 차원 상승: 골드와 적립 보너스를 새 단위로 바꿔요 (물가가 1로 돌아가요)
+      const ascending = run.act + 1 === CFG.logAct;
+      const oldEcon = R.econ(run, CFG.actLen);
       run.act++;
       run.map = this.genAct();
       run.floor = 0;
       run.curID = null;
       run.visited = [];
-      msg += ` ${run.act}막이 시작됐어요.`;
-      const t = TR.find(t => t.act === run.act);
+      if (ascending) {
+        run.gold = rnd(run.gold / oldEcon);
+        run.deck.forEach(c => { if (c.enh.includes('stack')) c.bonus = Math.max(CFG.stackStep, rnd(c.bonus / oldEcon)); });
+        msg += ' 차원 상승! 이제 체력은 10의 거듭제곱이고, 계산 결과의 자릿수(log₁₀)만큼 깎여요. 골드도 새 단위로 바뀌었어요.';
+        this.showIntro({ icon: '🌌', title: '차원 상승', sub: '로그 단계 · 결과의 자릿수가 피해가 돼요' }).then(paint);
+      } else {
+        msg += ` ${R.actName(run)}이 시작됐어요.`;
+      }
+      const t = LADDER.find(t => t.act === run.act);
       if (t) msg += ` 이제 ${t.name} 변신 강화가 나와요.`;
+      if (run.act === 6) msg += ' 이제 × 카드를 ^ 카드로 진화시킬 수 있고, 보스가 테트레이션을 줘요.';
+      msg += this.actStart();
     }
     run.mapMsg = msg;
     run.fight = null;
@@ -815,15 +981,47 @@ class Game {
     const rate = R.leftoverRate(run);
     const f = { nodeID: node.id, hpMax: R.hpFor(run, run.floor, node.type), score: 0, playsLeft: run.plays, discLeft: run.discards,
       numDraw: nums, opDraw: ops, numPile: [], opPile: [], handCards: [], sel: [], log: [], resolving: false };
-    f.log = [{ id: uid(), text: `${node.name}이(가) 나타났어요. ${run.plays}번 안에 체력 ${fmt(f.hpMax)}을 깎으세요. 이기면 남은 계산 1번당 ${fmt(rate.play)}골드, 버리기 1번당 ${fmt(rate.disc)}골드를 받아요.`, note: '', style: 'info' }];
+    const logRule = R.isLog(run) ? ' 로그 단계라서 계산 결과의 자릿수(log₁₀)만큼 체력의 지수가 깎여요.' : '';
+    f.log = [{ id: uid(), text: `${node.name}이(가) 나타났어요. ${run.plays}번 안에 체력 ${R.hpText(run, f.hpMax)}을 깎으세요.${logRule} 이기면 남은 계산 1번당 ${fmt(rate.play)}골드, 버리기 1번당 ${fmt(rate.disc)}골드를 받아요.`, note: '', style: 'info' }];
     run.fight = f;
     run.phase = 'fight';
     this.refill();
+    if (R.hasPerk(run, 'study')) this.ensureNumbers(4);
     this.save();
     this.checkStuck();
   }
 
   get fightNode() { return this.run.fight ? R.node(this.run, this.run.fight.nodeID) : null; }
+
+  // 예습: 첫 손패의 기호 카드를 숫자 덱의 카드와 바꿔 숫자를 n장 이상으로 맞춰요
+  ensureNumbers(n) {
+    const f = this.run.fight;
+    const isNum = h => { const c = R.card(this.run, h.cardID); return c && c.kind === 'num'; };
+    let count = f.handCards.filter(isNum).length;
+    for (const h of f.handCards) {
+      if (count >= n || !f.numDraw.length) break;
+      if (isNum(h)) continue;
+      f.opDraw.splice(Math.floor(Math.random() * (f.opDraw.length + 1)), 0, h.cardID);
+      h.cardID = f.numDraw.pop();
+      this.freshIDs.add(h.cardID);
+      count++;
+    }
+  }
+
+  // 연필 깎기: 손패를 모두 덱 아래로 돌려보내고 새로 뽑아요 (버리기를 쓰지 않아요)
+  sharpen() {
+    const f = this.run.fight;
+    if (this.busy || !f || !R.perkReady(this.run, 'sharpen')) return;
+    this.usePerk('sharpen');
+    f.sel = [];
+    f.handCards.forEach(h => { const c = R.card(this.run, h.cardID); if (c) this.toPile(f, c); });
+    f.handCards = [];
+    this.refill();
+    Sound.play('toss');
+    this.log('연필 깎기: 손패를 새로 뽑았어요', 'info');
+    this.save();
+    this.checkStuck();
+  }
 
   // 숫자 덱과 기호 덱을 합친 곳에서 무작위로 한 장 뽑아요. 덱이 비면 버린 더미를 섞어 다시 써요
   drawOne(f) {
@@ -871,32 +1069,37 @@ class Game {
   }
 
   // 강화 효과를 빼고 왼쪽부터 계산한 값과 단계별 기록
+  // 값은 큰 수(N)로 다뤄서 아무리 커져도 무한대가 되지 않아요
   chain(cs) {
-    if (!cs.length) return { val: 0, steps: [] };
+    if (!cs.length) return { val: N.of(0), steps: [] };
     const steps = [];
-    let val = numVal(cs[0]);
+    let val = N.of(numVal(cs[0]));
     for (let i = 1; i + 1 < cs.length; i += 2) {
-      const o = cs[i], b = numVal(cs[i + 1]), a = val;
-      let r = 0, note = '';
+      const o = cs[i], b = N.of(numVal(cs[i + 1])), a = val;
+      let r, note = '';
       switch (o.op) {
         case '+':
-          if (o.enh.includes('amp')) { r = a + b * 3; note = '증폭: 오른쪽 ×3'; } else r = a + b;
-          if (o.enh.includes('stack')) { r += o.bonus; note = `적립 +${fmt(o.bonus)}`; }
+          if (o.enh.includes('amp')) { r = N.add(a, N.mul(b, N.of(3))); note = '증폭: 오른쪽 ×3'; } else r = N.add(a, b);
+          if (o.enh.includes('stack')) { r = N.add(r, N.of(o.bonus)); note = `적립 +${fmt(o.bonus)}`; }
           break;
         case '-':
           // 역전은 빼서 음수가 될 때 발동해서, 빼는 대신 두 수를 더하고 ×4 해요
-          if (o.enh.includes('flip') && a - b < 0) { r = (a + b) * 4; note = '역전: 더하고 ×4'; } else r = a - b;
+          r = N.sub(a, b);
+          if (o.enh.includes('flip') && r.s < 0) { r = N.mul(N.add(a, b), N.of(4)); note = '역전: 더하고 ×4'; }
           break;
-        case '*': r = a * b; break;
+        case '*': r = N.mul(a, b); break;
         case '/':
-          if (b === 0) r = 0;
-          else if (o.enh.includes('exact') && divides(a, b)) { r = a * b * 2; note = '정확: 곱하고 ×2'; }
-          else r = a / b;
+          if (o.enh.includes('exact') && N.divides(a, b)) { r = N.mul(N.mul(a, b), N.of(2)); note = '정확: 곱하고 ×2'; }
+          else r = N.div(a, b);
+          break;
+        case '^':
+          r = N.pow(a, b);
+          if (Math.abs(N.num(b)) > CFG.powCap) note = `지수는 ${CFG.powCap}까지`;
           break;
       }
       val = r;
-      const shown = o.enh.includes('amp') ? `${fmt(a)} + ${fmt(b)}×3` : `${fmt(a)} ${SYM[o.op]} ${fmt(b)}`;
-      steps.push({ text: `${shown} = ${fmt(r)}`, note });
+      const shown = o.enh.includes('amp') ? `${N.fmt(a)} + ${N.fmt(b)}×3` : `${N.fmt(a)} ${SYM[o.op]} ${N.fmt(b)}`;
+      steps.push({ text: `${shown} = ${N.fmt(r)}`, note });
     }
     return { val, steps };
   }
@@ -904,8 +1107,17 @@ class Game {
   evaluate(cs, roll) {
     const res = { steps: [], fx: [], final: 0, hasLuck: false, luckHit: false };
     if (!cs.length) return res;
-    let { val, steps } = this.chain(cs);
-    res.steps = steps;
+    const chained = this.chain(cs);
+    res.steps = chained.steps;
+    const isLog = R.isLog(this.run);
+    // 로그 단계는 결과의 자릿수가 피해의 바탕이에요. 강화 효과는 그 자릿수에 붙어요
+    let val;
+    if (isLog) {
+      val = chained.val.s > 0 ? Math.max(0, N.log(chained.val)) : 0;
+      res.steps.push({ text: `자릿수 log₁₀ = ${fmt(Math.floor(val * 100) / 100)}`, note: '로그 단계' });
+    } else {
+      val = chained.val.v !== null ? chained.val.v : chained.val.s * BIG;
+    }
     const fire = R.fireBonus(this.run);
     cs.forEach(c => { if (c.enh.includes('fire')) { val += fire; res.fx.push({ text: `불꽃 +${fmt(fire)}`, style: 'fx' }); } });
     cs.forEach(c => { if (c.enh.includes('gold')) { val *= 2; res.fx.push({ text: '황금 ×2', style: 'fxGold' }); } });
@@ -913,10 +1125,11 @@ class Game {
       if (!c.enh.includes('luck')) return;
       res.hasLuck = true;
       if (!roll) return;
-      if (Math.random() < CFG.luckChance) { val *= 5; res.luckHit = true; res.fx.push({ text: '행운 ×5!!', style: 'fxGold' }); }
+      const chance = R.hasPerk(this.run, 'clover') ? 0.35 : CFG.luckChance;
+      if (Math.random() < chance) { val *= 5; res.luckHit = true; res.fx.push({ text: '행운 ×5!!', style: 'fxGold' }); }
       else res.fx.push({ text: '행운은 다음 기회에', style: 'miss' });
     });
-    res.final = Math.max(0, Math.floor(val));
+    res.final = Math.max(0, isLog ? Math.floor(val * 10) / 10 : Math.floor(Math.min(val, BIG)));
     return res;
   }
 
@@ -927,7 +1140,7 @@ class Game {
     if (!f || !last || last.op !== '/' || !last.enh.includes('exact')) return new Set();
     const a = this.chain(sel.slice(0, -1)).val;
     return new Set(f.handCards.filter(h => !h.out).map(h => R.card(this.run, h.cardID))
-      .filter(c => c && c.kind === 'num' && divides(a, numVal(c))).map(c => c.id));
+      .filter(c => c && c.kind === 'num' && N.divides(a, N.of(numVal(c)))).map(c => c.id));
   }
 
   select(id) {
@@ -993,14 +1206,16 @@ class Game {
     f.score += res.final;
     f.resolving = true;
     f.log = [{ id: uid(), text: cs.map(faceText).join(' '), note: '', style: 'expr' }];
-    this.run.bestPlay = Math.max(this.run.bestPlay, res.final);
+    // 한 방 기록은 숫자 단계에서만 쳐요 (로그 단계의 자릿수와 섞이지 않게)
+    const isLog = R.isLog(this.run);
+    if (!isLog) this.run.bestPlay = Math.max(this.run.bestPlay, res.final);
     this.hiddenDamage = res.final;
     this.freshIDs = new Set();
     this.previewOverride = null;
     this.finalPop = false;
     this.save();
     this.updateProfile(p => {
-      p.stats.maxHit = Math.max(p.stats.maxHit, res.final);
+      if (!isLog) p.stats.maxHit = Math.max(p.stats.maxHit, res.final);
       if (res.luckHit) p.stats.luckProcs++;
     });
     paint();
@@ -1019,7 +1234,7 @@ class Game {
     for (let k = 1; k <= frames; k++) {
       const e = 1 - Math.pow(1 - k / frames, 3);
       const last = f.log[f.log.length - 1];
-      last.text = fmt(Math.floor(res.final * e));
+      last.text = R.dmgText(this.run, isLog ? Math.floor(res.final * e * 10) / 10 : Math.floor(res.final * e));
       paint();
       if (k % 3 === 1) Sound.play('tick', { rate: 1 + 0.7 * k / frames, vol: 0.45 });
       await wait(500 / frames);
@@ -1072,7 +1287,14 @@ class Game {
       this.log(`처치 ${fmt(g1)} + 초과 피해 ${fmt(g2)} + 남은 계산 ${fmt(g4)} + 남은 버리기 ${fmt(g3)} = 골드 +${fmt(gain)}`, 'fxGold');
       return { win: node.type === 'elite' ? 2 : 1 };
     }
-    if (f.playsLeft === 0) return { lose: `${node.name}의 체력이 ${fmt(f.hpMax - f.score)} 남았어요` };
+    // 뒷심: 막마다 한 번, 거의 다 잡았으면 한 번 더 계산해요
+    if (f.playsLeft === 0 && f.hpMax - f.score <= f.hpMax * 0.2 && R.perkReady(run, 'grit')) {
+      this.usePerk('grit');
+      f.playsLeft = 1;
+      this.log('뒷심! 한 번 더 계산할 수 있어요', 'fxGold');
+      return {};
+    }
+    if (f.playsLeft === 0) return { lose: `${node.name}의 체력이 ${R.hpText(run, f.hpMax - f.score)} 남았어요` };
     return {};
   }
 
@@ -1087,7 +1309,7 @@ class Game {
   genPerks() {
     const run = this.run, deck = run.deck;
     const enchant = e => () => {
-      const cs = deck.filter(c => c.op !== '*' && !c.enh.includes(e)); if (!cs.length) return null;
+      const cs = deck.filter(c => !PLAIN_OPS.includes(c.op) && !c.enh.includes(e)); if (!cs.length) return null;
       const c = pick(cs);
       return { kind: 'enchant', enh: e, cardID: c.id, title: `${cardLabel(c)}에 ${ENH[e].name}`, desc: ENH[e].desc };
     };
@@ -1104,15 +1326,29 @@ class Game {
     };
     const trPerk = t => () => {
       const ti = TR.indexOf(t);
-      const cs = deck.filter(c => c.kind === 'num' && trIndex(c) < ti); if (!cs.length) return null;
+      const cs = deck.filter(c => c.kind === 'num' && trIndex(c) < ti && t.f(Math.min(c.v, t.cap)) > numVal(c)); if (!cs.length) return null;
       const c = pick(cs);
       const after = t.f(Math.min(c.v, t.cap));
       const title = c.tr ? `${faceText(c)}을 ${t.txt(Math.min(c.v, t.cap))}로` : `숫자 ${c.v}에 ${t.name}`;
       return { kind: 'transform', tr: t.key, cardID: c.id, title, desc: `변신하면 이 카드의 계산 값이 ${fmt(after)}이 돼요` };
     };
+    // 6막부터: × 카드를 ^ 카드로 진화
+    const evolve = () => {
+      const cs = deck.filter(c => c.op === '*'); if (run.act < 6 || !cs.length) return null;
+      const c = pick(cs);
+      return { kind: 'evolve', cardID: c.id, title: '× 카드를 ^ 카드로 진화', desc: `거듭제곱: 왼쪽 수를 오른쪽 수만큼 거듭제곱해요 (지수는 ${CFG.powCap}까지)` };
+    };
+    // 6막부터 보스 보상: 테트레이션 3↑↑n (입력 1 차이로 값이 수조 배씩 튀어요)
+    const tetra = () => {
+      const t = TR.find(t => t.key === 'tet');
+      const cs = deck.filter(c => c.kind === 'num' && c.tr !== 'tet' && t.f(Math.min(c.v, t.cap)) > numVal(c)); if (!cs.length) return null;
+      const c = pick(cs);
+      return { kind: 'transform', tr: 'tet', cardID: c.id, title: `숫자 ${faceText(c)}에 테트레이션`, desc: `보스 보상: 3↑↑n으로 변신해 계산 값이 ${fmt(t.f(Math.min(c.v, t.cap)))}이 돼요 (n은 ${t.cap}까지)` };
+    };
     // 손패·계산 +1은 판을 크게 바꾸므로 뽑혀도 일정 확률로만 나와요
     const rare = () => Math.random() < CFG.corePerkRate;
     const gens = [
+      evolve, evolve,
       upNum, upNum,
       enchant('gold'), enchant('fire'), enchant('fire'), enchant('luck'),
       opPerk('amp'), opPerk('stack'), opPerk('flip'), opPerk('exact'), opPerk('amp'), opPerk('exact'),
@@ -1121,13 +1357,21 @@ class Game {
       () => run.plays < 6 && rare() ? { kind: 'plays', glyph: '계산', title: '계산 기회 +1', desc: '전투마다 한 번 더 계산할 수 있어요' } : null,
       () => run.discards < 6 ? { kind: 'discards', glyph: '버림', title: '버리기 +1', desc: '전투마다 한 번 더 버릴 수 있어요' } : null
     ];
+    const node = this.fightNode;
+    // 정예 사냥꾼: 정예를 잡으면 선택지 4개
+    const size = node && node.type === 'elite' && R.hasPerk(run, 'hunter') ? 4 : 3;
     const out = [], used = new Set();
+    // 같은 카드를 두 번 고르지 않고, 같은 종류의 특전도 두 번 내지 않아요
+    const keys = o => [o.cardID != null ? 'c' + o.cardID : null, 'k' + o.kind + ':' + (o.enh || o.tr || '')].filter(Boolean);
+    if (node && node.type === 'boss' && run.act >= 6) {
+      const t = tetra();
+      if (t) { t.id = uid(); out.push(t); keys(t).forEach(k => used.add(k)); }
+    }
     let guard = 0;
-    while (out.length < 3 && guard++ < 100) {
+    while (out.length < size && guard++ < 200) {
       const o = pick(gens)(); if (!o) continue;
-      const key = o.cardID != null ? 'c' + o.cardID : 'r' + o.title;
-      if (used.has(key)) continue;
-      used.add(key);
+      if (keys(o).some(k => used.has(k))) continue;
+      keys(o).forEach(k => used.add(k));
       o.id = uid();
       out.push(o);
     }
@@ -1149,6 +1393,7 @@ class Game {
       else if (perk.kind === 'enchant') c.enh.push(perk.enh);
       else if (perk.kind === 'opPerk') { c.enh.push(perk.enh); if (perk.enh === 'stack') c.bonus = this.stackStep; }
       else if (perk.kind === 'transform') c.tr = perk.tr;
+      else if (perk.kind === 'evolve') { c.op = '^'; c.enh = []; }
       this.collect([c]);
     }
     if (perk.kind === 'handSize') run.hand++;
@@ -1161,8 +1406,22 @@ class Game {
     }
   }
 
+  // 다시 뽑기: 막마다 한 번 특전 선택지를 새로
+  rerollPerks() {
+    const rw = this.run.reward;
+    if (!rw || !R.perkReady(this.run, 'reroll')) return;
+    this.usePerk('reroll');
+    rw.offers = this.genPerks();
+    Sound.play('swish', { rate: 0.8 });
+    this.save();
+  }
+
   // ----- 상점 -----
-  buyPrice(c) { return rnd(baseValue(c) * R.econ(this.run)); }
+  // 할인권: 막마다 상점 첫 구매 30% 할인
+  buyPrice(c) {
+    const p = rnd(baseValue(c) * R.econ(this.run));
+    return this.run.phase === 'shop' && R.perkReady(this.run, 'coupon') ? rnd(p * 0.7) : p;
+  }
   // 적립 보너스의 시작값이자 1회 증가량 (물가에 비례, 최소 기본값)
   get stackStep() { return Math.max(CFG.stackStep, rnd(CFG.stackStep * R.econ(this.run))); }
 
@@ -1175,9 +1434,9 @@ class Game {
       items.push(c);
     }
     for (let i = 0; i < 3; i++) {
-      const op = pick(['+', '+', '-', '/', '/', '*']);
+      const op = pick(this.run.act >= 6 ? ['+', '+', '-', '/', '/', '*', '^'] : ['+', '+', '-', '/', '/', '*']);
       const c = this.mk('op', op);
-      if (op !== '*') {
+      if (!PLAIN_OPS.includes(op)) {
         if (Math.random() < 0.65) {
           const e = pick(OP_PERKS.filter(k => ENH[k].op === op));
           c.enh.push(e);
@@ -1214,6 +1473,7 @@ class Game {
     const i = run.deck.findIndex(c => c.id === old.id);
     if (run.gold < p || i < 0) return;
     run.gold -= p;
+    if (R.perkReady(run, 'coupon')) this.usePerk('coupon');
     run.deck[i] = pend;
     run.shop.items = run.shop.items.filter(c => c.id !== pend.id);
     run.shop.msg = `${cardLabel(old)}을(를) 버리고 ${cardLabel(pend)}을(를) 넣었어요.`;
@@ -1223,9 +1483,28 @@ class Game {
     this.save();
   }
 
+  // 재입고: 막마다 한 번 무료로 상점 물건을 새로
+  restock() {
+    const shop = this.run.shop;
+    if (!shop || !R.perkReady(this.run, 'restock')) return;
+    this.usePerk('restock');
+    shop.items = this.genShop();
+    shop.pendingID = null;
+    shop.msg = '재입고! 물건을 새로 들여왔어요.';
+    Sound.play('coins', { rate: 1.2, vol: 0.6 });
+    this.save();
+  }
+
   leaveShop() {
-    this.run.shop.pendingID = null;
-    this.afterNode('상점을 나왔어요.');
+    const run = this.run;
+    run.shop.pendingID = null;
+    let msg = '상점을 나왔어요.';
+    // 이자: 남은 골드의 10% (최대 물가 ×10)
+    if (R.hasPerk(run, 'interest') && run.gold > 0) {
+      const g = Math.min(rnd(run.gold * 0.1), rnd(10 * R.econ(run)));
+      if (g > 0) { run.gold += g; run.goldTotal += g; msg += ` 이자 +${fmt(g)}골드.`; }
+    }
+    this.afterNode(msg);
   }
 
   get sortedDeck() { return this.run.deck.slice().sort((a, b) => this.cmpCard(a, b)); }
@@ -1242,6 +1521,7 @@ class Game {
       parts.push(s);
     });
     if (c.op === '*') parts.push('곱셈 카드는 강화할 수 없어요');
+    if (c.op === '^') parts.push(`거듭제곱: 왼쪽 수를 오른쪽 수만큼 거듭제곱해요. 지수는 ${CFG.powCap}까지이고 강화할 수 없어요`);
     return parts.join('. ');
   }
 }
@@ -1263,8 +1543,9 @@ function cardHTML(c, opts = {}) {
     return `<i class="bd bd-${e}${isOpPerk(e) ? ' bd-op' : ''}">${label}</i>`;
   }).join('');
   if (c.up > 0) badges += `<i class="bd bd-up">▲${c.up * 3}</i>`;
+  const many = c.enh.length + (c.up > 0 ? 1 : 0) >= 3;
   const style = opts.size ? ` style="font-size:${opts.size}px"` : '';
-  return `<div class="${cls.join(' ')}" data-cid="${c.id}"${style} aria-label="${cardLabel(c)}"><span class="face">${face}</span><span class="bds">${badges}</span></div>`;
+  return `<div class="${cls.join(' ')}" data-cid="${c.id}"${style} aria-label="${cardLabel(c)}"><span class="face">${face}</span><span class="bds${many ? ' many' : ''}">${badges}</span></div>`;
 }
 
 let lastScreen = null;
@@ -1318,6 +1599,7 @@ function paintMenu(app) {
     <div class="tiles">
       <button class="tile" data-act="sheet" data-s="ach"><span class="ic">🏆</span><b>업적</b><span class="v h">${Object.keys(p.achievements).length}/${ACHIEVEMENTS.length}</span><small>슬롯 ${sel + 1}</small></button>
       <button class="tile" data-act="sheet" data-s="col"><span class="ic">🃏</span><b>카드 도감</b><span class="v h">${collectionCount(p)}/${CATALOG.length}</span><small>슬롯 ${sel + 1}</small></button>
+      <button class="tile" data-act="sheet" data-s="perks"><span class="ic">🎒</span><b>퍽</b><span class="v h">${(p.equipped || []).length}/${PERK_SLOTS}</span><small>해금 ${(p.perksUnlocked || []).length}/${PERKS.length}</small></button>
     </div>
     <p class="sect" style="text-align:center; font-weight:400">v${VERSION}</p>
   </div>`;
@@ -1356,12 +1638,18 @@ function paintMap(screen) {
   const nodes = run.map.flat();
   const yOf = f => (f - 0.5) * ROW_H;
   const H = CFG.actLen * ROW_H;
+  // 칸 너비의 절반만큼 양 끝에서 떨어뜨려 칸이 지도 밖으로 나가지 않게 해요
+  const W = screen.clientWidth || 360;
+  const cx = n => {
+    const half = n.type === 'boss' ? Math.min(20, 75 / W * 100) : Math.min(13.5, 50 / W * 100);
+    return Math.max(half + 0.5, Math.min(99.5 - half, n.x));
+  };
   let svg = `<svg viewBox="0 0 100 ${H}" preserveAspectRatio="none" aria-hidden="true">`;
   nodes.forEach(n => n.next.forEach(id => {
     const m = R.node(run, id); if (!m) return;
     const walked = run.visited.includes(n.id) && run.visited.includes(m.id);
     const live = run.curID === n.id;
-    svg += `<line x1="${n.x}" y1="${yOf(n.floor)}" x2="${m.x}" y2="${yOf(m.floor)}" class="${walked ? 'walked' : live ? 'live' : ''}"/>`;
+    svg += `<line x1="${cx(n)}" y1="${yOf(n.floor)}" x2="${cx(m)}" y2="${yOf(m.floor)}" class="${walked ? 'walked' : live ? 'live' : ''}"/>`;
   }));
   svg += '</svg>';
   let labels = '';
@@ -1369,22 +1657,23 @@ function paintMap(screen) {
   const btns = nodes.map(n => {
     const ok = R.reachable(run, n), done = run.visited.includes(n.id), past = !done && n.floor <= run.floor;
     const cls = ['node', n.type === 'boss' && 'boss', ok && 'reach', done && 'done', past && 'past'].filter(Boolean).join(' ');
-    const hp = n.type === 'shop' ? '' : `<span class="hpv h">${fmt(R.hpFor(run, n.floor, n.type))}</span>`;
-    return `<button class="${cls}" style="left:${n.x}%; top:${yOf(n.floor)}px" ${ok ? `data-act="node" data-id="${n.id}"` : 'disabled'}
+    const hp = n.type === 'shop' ? '' : `<span class="hpv h">${R.hpText(run, R.hpFor(run, n.floor, n.type))}</span>`;
+    return `<button class="${cls}" style="left:${cx(n)}%; top:${yOf(n.floor)}px" ${ok ? `data-act="node" data-id="${n.id}"` : 'disabled'}
       aria-label="${n.floor}층 ${NODE[n.type].name} ${n.type === 'shop' ? '' : n.name}"><span class="ic">${NODE[n.type].icon}</span><span class="nm">${n.name}</span>${hp}</button>`;
   }).join('');
-  const key = JSON.stringify([run.act, run.curID, run.visited.length, run.mapMsg]);
+  const key = JSON.stringify([run.act, run.curID, run.visited.length, run.mapMsg, W]);
   if (screen.dataset.key === key) return;
   screen.dataset.key = key;
   screen.innerHTML = `<div style="display:flex; flex-direction:column; gap:12px">
-    <h3 class="mapt h">${run.act}막</h3>
+    <h3 class="mapt h">${R.actName(run)}</h3>
     ${run.mapMsg ? `<p class="mapmsg h">${run.mapMsg}</p>` : ''}
     <div class="map" style="height:${H}px">${svg}${labels}${btns}</div>
     <details><summary>규칙</summary>
       <p>선으로 이어진 다음 칸으로만 갈 수 있어요. 갈림길은 1~3갈래로 매번 달라져요. 칸 아래 숫자는 몹의 체력이에요.</p>
       <p>몹을 잡으면 골드를 받고 특전을 하나 골라요. 골드는 처치 보상, 넘친 피해(상한 있음), 남은 계산·버리기 횟수로 정해지고, 모두 적 체력에 비례해 커져요. 정예는 체력이 높지만 특전을 두 개 골라요. 상점에 들르면 싸우지 않으니 특전과 골드는 없어요.</p>
       <p>상점에서 숫자 카드는 숫자 카드와, 기호 카드는 기호 카드와 바꿔요. 가격도 적 체력과 함께 올라요.</p>
-      <p>막이 오를 때마다 숫자를 더 크게 바꾸는 변신 강화가 하나씩 해금돼요. 2막 제곱, 3막 2의 거듭제곱, 4막 자연지수, 5막 팩토리얼 순이에요.</p>
+      <p>막이 오를 때마다 숫자를 더 크게 바꾸는 변신 강화가 하나씩 해금돼요. 2막 제곱, 3막 2의 거듭제곱, 4막 자연지수, 5막 팩토리얼, 6막 자기거듭제곱, 7막 슈퍼팩토리얼, 8막 하이퍼팩토리얼 순이에요. 6막부터는 × 카드를 ^ 카드로 진화시킬 수 있고, 보스가 테트레이션을 줘요.</p>
+      <p>${CFG.logAct - 1}막을 넘기면 차원 상승으로 로그 단계가 돼요. 체력은 10의 거듭제곱으로 바뀌고, 계산 결과의 자릿수(log₁₀)만큼 깎여요. 체력과 물가는 다시 1막처럼 시작해요.</p>
     </details></div>`;
   const target = screen.querySelector('.node.reach');
   if (target) setTimeout(() => target.scrollIntoView({ block: 'center', behavior: reduceMotion ? 'auto' : 'smooth' }), 50);
@@ -1409,7 +1698,8 @@ function paintFight(screen) {
       <div class="bar"><div class="fill"></div></div><div class="meta"></div></div>`;
     const board = `<div class="board"><div class="slots"></div><div><div class="preview"></div><div class="log" aria-live="polite"></div></div></div>`;
     const hand = `<div class="hand" aria-label="손패"></div>`;
-    const actions = `<div class="actions"><button class="btn ghost disc" data-act="discard"></button><button class="btn play" data-act="play"></button></div>`;
+    const actions = `<div class="actions"><button class="btn ghost disc" data-act="discard"></button><button class="btn play" data-act="play"></button></div>`
+      + (R.hasPerk(G.run, 'sharpen') ? `<div class="perkbar"><button class="perkchip sharpen" data-act="sharpen"></button></div>` : '');
     screen.innerHTML = wide
       ? `<div class="fight wide"><div class="left">${status}${actions}</div><div class="right">${board}${hand}</div></div>`
       : `<div class="fight">${status}${board}${hand}${actions}${rules}</div>`;
@@ -1421,7 +1711,7 @@ function paintFight(screen) {
   const tag = screen.querySelector('.tag');
   tag.hidden = node.type === 'mob';
   tag.textContent = NODE[node.type].name;
-  screen.querySelector('.hp').textContent = `${fmt(left)} / ${fmt(f.hpMax)}`;
+  screen.querySelector('.hp').textContent = `${R.hpText(run, left)} / ${R.hpText(run, f.hpMax)}`;
   screen.querySelector('.fill').style.width = `${Math.max(0, Math.min(1, left / f.hpMax)) * 100}%`;
   screen.querySelector('.meta').innerHTML = `<span>계산 <b>${f.playsLeft}번</b></span><span>버리기 <b>${f.discLeft}번</b></span><span>숫자 덱 <b>${f.numDraw.length}장</b></span><span>기호 덱 <b>${f.opDraw.length}장</b></span>`;
   // 수식 칸
@@ -1442,7 +1732,7 @@ function paintFight(screen) {
   const pv = screen.querySelector('.preview');
   const v = G.validity(sel);
   if (G.previewOverride) { pv.className = 'preview'; pv.textContent = G.previewOverride; }
-  else if (v.ok) { const r = G.evaluate(sel, false); pv.className = 'preview ok'; pv.textContent = `= ${fmt(r.final)}${r.hasLuck ? '  (행운 미포함)' : ''}`; }
+  else if (v.ok) { const r = G.evaluate(sel, false); pv.className = 'preview ok'; pv.textContent = `= ${R.dmgText(run, r.final)}${r.hasLuck ? '  (행운 미포함)' : ''}`; }
   else if (!G.busy && !(wide && !sel.length)) { pv.className = 'preview'; pv.textContent = v.msg; }
   else { pv.className = 'preview'; pv.textContent = ''; }
   paintLog(screen.querySelector('.log'), wide ? f.log.filter(l => l.style !== 'info') : f.log);
@@ -1460,6 +1750,12 @@ function paintFight(screen) {
   play.innerHTML = `계산하기 ${tally(run.plays, f.playsLeft)}`;
   disc.disabled = !canDisc;
   play.disabled = !canPlay;
+  const sh = screen.querySelector('.sharpen');
+  if (sh) {
+    const ready = R.perkReady(run, 'sharpen');
+    sh.textContent = `✏️ 연필 깎기: 손패 새로 뽑기 ${ready ? '(이번 막 1번)' : '(이번 막에 씀)'}`;
+    sh.disabled = G.busy || !ready;
+  }
   disc.setAttribute('aria-label', `버리기, ${f.discLeft}번 남음`);
   play.setAttribute('aria-label', `계산하기, ${f.playsLeft}번 남음`);
 }
@@ -1675,21 +1971,24 @@ function paintShop(screen) {
   const run = G.run, shop = run.shop;
   if (!shop) return;
   const pend = G.pendingItem;
+  const coupon = R.perkReady(run, 'coupon');
   const items = shop.items.map(c => {
     const price = G.buyPrice(c);
     const t = trOf(c);
     const extras = [t ? `${t.name} 변신 (계산 값 ${fmt(numVal(c))})` : '', ...c.enh.map(e => `${ENH[e].name}: ${ENH[e].desc}`)].filter(Boolean).join(' / ');
     const picking = shop.pendingID === c.id;
     return `<div class="item${picking ? ' picking' : ''}">${cardHTML(c, { noshadow: true })}
-      <span class="tx"><b>${cardLabel(c)}</b><small>${extras || (c.op === '*' ? '강화할 수 없는 곱셈 카드' : '강화 없는 기본 카드')}</small></span>
-      <button class="buy" data-act="pend" data-id="${c.id}" ${run.gold < price ? 'disabled' : ''}>${picking ? '고르는 중' : `${fmt(price)} 골드`}</button></div>`;
+      <span class="tx"><b>${cardLabel(c)}</b><small>${extras || (c.op === '*' ? '강화할 수 없는 곱셈 카드' : c.op === '^' ? `거듭제곱 카드 (지수는 ${CFG.powCap}까지)` : '강화 없는 기본 카드')}</small></span>
+      <button class="buy" data-act="pend" data-id="${c.id}" ${run.gold < price ? 'disabled' : ''}>${picking ? '고르는 중' : `${fmt(price)} 골드${coupon ? ' 🎟️' : ''}`}</button></div>`;
   }).join('');
   const swap = pend ? `<div style="display:grid; gap:8px" id="swapArea">
       <p class="sect">${cardLabel(pend)}(${fmt(G.buyPrice(pend))} 골드)와 바꿀 ${pend.kind === 'num' ? '숫자' : '기호'} 카드를 고르세요</p>
       <div class="deckgrid">${G.sortedDeck.filter(c => c.kind === pend.kind).map(c => `<button class="cardbtn" data-act="swap" data-id="${c.id}" aria-label="${cardLabel(c)}와 바꾸기">${cardHTML(c)}</button>`).join('')}</div>
       <button class="btn ghost" data-act="cancelSwap">교환 취소</button></div>` : '';
   screen.innerHTML = `<div style="display:flex; flex-direction:column; gap:12px">
-    <h3 class="shopt h">상점</h3><p class="sub">${shop.msg}</p><p class="sect">사기</p>
+    <h3 class="shopt h">상점</h3><p class="sub">${shop.msg}${coupon ? ' 🎟️ 할인권: 이번 막 첫 구매가 30% 싸요.' : ''}</p>
+    ${R.hasPerk(run, 'restock') ? `<div class="perkbar"><button class="perkchip" data-act="restock" ${R.perkReady(run, 'restock') ? '' : 'disabled'}>🔄 재입고 ${R.perkReady(run, 'restock') ? '(무료, 이번 막 1번)' : '(이번 막에 씀)'}</button></div>` : ''}
+    <p class="sect">사기</p>
     ${shop.items.length ? items : '<p class="sub">다 팔렸어요.</p>'}
     ${swap}
     <button class="btn" data-act="leaveShop">상점 나가기</button></div>`;
@@ -1709,10 +2008,26 @@ function soundHTML() {
     ${row('sfx', '효과음', '카드, 계산, 동전, 종소리')}</div></div>`;
 }
 
-function bossIntroHTML(n) {
+function introHTML(it) {
   return `<div class="bossintro" aria-live="assertive"><div class="band a"></div><div class="band b"></div>
-    <div class="q"><div class="plate"><span class="ic">👑</span><b class="h">${n.name}</b>
-    <small>${G.run.act}막 보스 · 체력 ${fmt(R.hpFor(G.run, n.floor, 'boss'))}</small></div></div></div>`;
+    <div class="q"><div class="plate"><span class="ic">${it.icon}</span><b class="h">${it.title}</b>
+    <small>${it.sub}</small></div></div></div>`;
+}
+
+function perksHTML() {
+  const slot = G ? G.slot : ui.selectedSlot;
+  const p = Store.profile(slot);
+  const eq = p.equipped || [], unlocked = p.perksUnlocked || [];
+  const rows = PERKS.map(k => {
+    const open = unlocked.includes(k.key), on = eq.includes(k.key);
+    const tag = !open ? `${depthText(k.depth)} 도달 시 해금` : on ? '장착 중' : eq.length >= PERK_SLOTS ? '' : '장착';
+    return `<button class="perk${on ? ' on' : ''}${open ? '' : ' locked'}" ${open && !G ? `data-act="equip" data-k="${k.key}"` : ''} aria-pressed="${on}">
+      <span class="ic">${open ? k.icon : '🔒'}</span><span class="tx"><b>${k.name}</b><small>${k.desc}</small></span><em>${tag}</em></button>`;
+  }).join('');
+  const note = G ? '장착은 메인 화면에서 바꿀 수 있어요. 새 게임부터 적용돼요.' : '최대 3개까지 장착해요. 새 게임을 시작할 때 적용돼요.';
+  return `<div class="overlay" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true">
+    ${sheetHead('퍽', `슬롯 ${slot + 1} · 장착 ${eq.length}/${PERK_SLOTS} · 해금 ${unlocked.length}/${PERKS.length}`)}
+    <p class="sub">${note} 더 깊이 내려갈수록 하나씩 해금돼요 (최고 ${depthText(Math.max(1, p.stats.maxDepth || 0))}).</p>${rows}</div></div>`;
 }
 
 // ----- 시트와 오버레이 -----
@@ -1722,25 +2037,44 @@ function sheetHead(title, sub, closeAct = 'closeSheet') {
 
 function paintOverlays() {
   const root = $('#overlays');
-  let html = '';
-  if (G && G.run.reward) html += rewardHTML();
-  if (G && G.run.over) html += gameOverHTML();
-  if (G && G.bossIntro) html += bossIntroHTML(G.bossIntro);
-  if (ui.sheet === 'sound') html += soundHTML();
-  if (ui.sheet === 'deck' && G) html += deckHTML();
-  if (ui.sheet === 'ach') html += achievementsHTML();
-  if (ui.sheet === 'col') html += collectionHTML();
-  if (ui.confirm) html += `<div class="overlay dialog" data-act="cancelConfirm"><div class="sheet" role="alertdialog" aria-modal="true">
+  const want = [];
+  if (G && G.run.reward) want.push(['reward', rewardHTML()]);
+  if (G && G.run.over) want.push(['over', gameOverHTML()]);
+  if (G && G.intro) want.push(['intro:' + G.intro.title, introHTML(G.intro)]);
+  if (ui.sheet === 'sound') want.push(['sound', soundHTML()]);
+  if (ui.sheet === 'deck' && G) want.push(['deck', deckHTML()]);
+  if (ui.sheet === 'ach') want.push(['ach', achievementsHTML()]);
+  if (ui.sheet === 'col') want.push(['col', collectionHTML()]);
+  if (ui.sheet === 'perks') want.push(['perks', perksHTML()]);
+  if (ui.confirm) want.push(['confirm', `<div class="overlay dialog" data-act="cancelConfirm"><div class="sheet" role="alertdialog" aria-modal="true">
       <h3>${ui.confirm.title}</h3>${ui.confirm.msg ? `<p class="sub">${ui.confirm.msg}</p>` : ''}
       <button class="btn" style="background:var(--red); border-color:var(--red)" data-act="okConfirm">${ui.confirm.ok}</button>
-      <button class="btn ghost" data-act="cancelConfirm">취소</button></div></div>`;
-  if (root._html === html) return;
-  // 같은 시트가 다시 그려질 때 스크롤 위치를 지켜요
-  const scrolls = [...root.querySelectorAll('.overlay')].map(o => o.scrollTop);
-  root._html = html;
-  root.innerHTML = html;
-  [...root.querySelectorAll('.overlay')].forEach((o, i) => { if (scrolls[i]) { o.scrollTop = scrolls[i]; o.style.animation = 'none'; } });
-  document.body.style.overflow = html ? 'hidden' : '';
+      <button class="btn ghost" data-act="cancelConfirm">취소</button></div></div>`]);
+  // 열려 있던 시트는 그대로 두고 안쪽만 바꿔서, 다시 나타나는 애니메이션(깜빡임)과 스크롤 초기화를 막아요
+  const keep = new Map([...root.children].map(el => [el.dataset.key, el]));
+  want.forEach(([key, html], i) => {
+    let el = keep.get(key);
+    if (el) {
+      keep.delete(key);
+      if (el._html !== html) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        const fresh = tmp.firstElementChild;
+        el.innerHTML = fresh.innerHTML;
+        el.className = fresh.className;
+        el._html = html;
+      }
+    } else {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      el = tmp.firstElementChild;
+      el.dataset.key = key;
+      el._html = html;
+    }
+    if (root.children[i] !== el) root.insertBefore(el, root.children[i] || null);
+  });
+  keep.forEach(el => el.remove());
+  document.body.style.overflow = want.length ? 'hidden' : '';
 }
 
 function rewardHTML() {
@@ -1757,8 +2091,8 @@ function rewardHTML() {
   const offers = rw.offers.map(o => {
     const c = o.cardID != null ? R.card(run, o.cardID) : null;
     const vis = c ? cardHTML(c, { noshadow: true }) : `<span class="rule h">${o.glyph}</span>`;
-    return `<button class="offer" data-act="choose" data-id="${o.id}"><span class="vis">${vis}</span><span><b>${o.title}</b><small>${o.desc}</small></span></button>`;
-  }).join('');
+    return `<button class="offer" data-act="choose" data-id="${o.id}"><span class="vis">${vis}</span><span class="tx"><b>${o.title}</b><small>${o.desc}</small></span></button>`;
+  }).join('') + (R.hasPerk(run, 'reroll') ? `<div class="perkbar"><button class="perkchip" data-act="reroll" ${R.perkReady(run, 'reroll') ? '' : 'disabled'}>🎲 다시 뽑기 ${R.perkReady(run, 'reroll') ? '(이번 막 1번)' : '(이번 막에 씀)'}</button></div>` : '');
   const body = wide
     ? `<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start"><div class="rw">${summary}</div><div class="rw">${offers}</div></div>`
     : `<div class="rw">${summary}${offers}</div>`;
@@ -1786,15 +2120,25 @@ function deckHTML() {
   const run = G.run, deck = G.sortedDeck;
   const nums = deck.filter(c => c.kind === 'num'), ops = deck.filter(c => c.kind === 'op');
   const inFight = run.phase === 'fight' && !run.reward && run.fight;
-  const sub = inFight ? `이번 전투에서 뽑을 카드: 숫자 ${run.fight.numDraw.length}장, 기호 ${run.fight.opDraw.length}장 / 덱 ${run.deck.length}장`
+  const sub = inFight ? `이번 전투에서 뽑을 카드: 숫자 ${run.fight.numDraw.length}장, 기호 ${run.fight.opDraw.length}장 / 덱 ${run.deck.length}장. 회색은 손패에 있거나 이미 쓴 카드예요.`
                       : `손패 ${run.hand}장, 계산 ${run.plays}번, 버리기 ${run.discards}번 / 덱 ${run.deck.length}장`;
-  const grid = (t, cs) => `<p class="sect">${t}</p><div class="deckgrid">${cs.map(c => `<button class="cardbtn" data-act="info" data-id="${c.id}">${cardHTML(c)}</button>`).join('')}</div>`;
+  // 전투 중에는 버리기로 새로 나올 수 있는 카드만 원래 색이에요 (뽑을 덱이 비면 버린 더미를 섞어 다시 써요)
+  let drawable = null;
+  if (inFight) {
+    const f = run.fight;
+    drawable = new Set(f.numDraw.length + f.opDraw.length ? [...f.numDraw, ...f.opDraw] : [...f.numPile, ...f.opPile]);
+  }
+  const grid = (t, cs) => `<p class="sect">${t}</p><div class="deckgrid">${cs.map(c => `<button class="cardbtn" data-act="info" data-id="${c.id}">${cardHTML(c, { extra: drawable && !drawable.has(c.id) ? 'dim' : '' })}</button>`).join('')}</div>`;
   const r = R.leftoverRate(run), e = R.econ(run);
   const legend = ENH_KEYS.map(k => `<li><b class="${isOpPerk(k) ? 'r' : ''}">${ENH[k].badge}</b>  ${ENH[k].name}${ENH[k].op ? ` (${SYM[ENH[k].op]} 카드)` : ''}: ${ENH[k].desc}</li>`).join('')
-    + TR.map(t => `<li><b>${t.txt('n')}</b>  ${t.name} 변신 (${t.act}막부터${run.act >= t.act ? ', 해금됨' : ''}): 숫자 n을 ${t.txt('n')}으로 계산해요. n은 ${t.cap}까지만 적용돼요</li>`).join('')
+    + TR.map(t => `<li><b>${t.txt('n')}</b>  ${t.name} 변신 (${t.act}막부터${t.special ? ' 보스 보상' : ''}${run.act >= t.act ? ', 해금됨' : ''}): 숫자 n을 ${t.txt('n')}으로 계산해요. n은 ${t.cap}까지만 적용돼요</li>`).join('')
     + '<li>× 카드는 강력한 대신 강화할 수 없어요.</li>'
+    + `<li><b class="r">^</b>  거듭제곱 카드 (6막부터 × 카드가 진화): 지수는 ${CFG.powCap}까지예요.</li>`
+    + (R.isLog(run) ? '<li>로그 단계: 체력은 10의 거듭제곱이고, 계산 결과의 자릿수(log₁₀)에 강화 효과가 붙어 피해가 돼요.</li>' : '')
     + `<li>골드(지금 층 기준): 처치 ${fmt(rnd(CFG.killGold * e))} + 초과 피해 골드(일반 몹 기준 최대 ${fmt(rnd(CFG.goldCap * e))}) + 남은 계산당 ${fmt(r.play)} + 남은 버리기당 ${fmt(r.disc)}. 지금 물가 ${fmt(e)}배.</li>`;
+  const perks = (run.perks || []).map(k => { const x = perkOf(k); return `<li><b>${x.icon} ${x.name}</b>  ${x.desc}${['restock', 'coupon', 'reroll', 'sharpen', 'grit'].includes(k) ? (R.perkReady(run, k) ? ' (이번 막에 아직 안 씀)' : ' (이번 막에 씀)') : ''}</li>`; }).join('');
   return `<div class="overlay" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true">${sheetHead('내 덱', sub)}
+    ${perks ? `<p class="sect">장착한 퍽</p><ul class="legend">${perks}</ul>` : ''}
     ${grid(`숫자 덱 ${nums.length}장`, nums)}${grid(`기호 덱 ${ops.length}장`, ops)}
     <div class="box" style="min-height:40px">${ui.info || '카드를 누르면 설명이 보여요.'}</div>
     <ul class="legend">${legend}</ul></div></div>`;
@@ -1843,6 +2187,8 @@ function pushToast(icon, title, subtitle) {
   el.className = 'toast';
   el.innerHTML = `<span class="ic">${icon}</span><span><small>${title}</small><b>${subtitle}</b></span>`;
   box.appendChild(el);
+  // 알림은 3개까지만 쌓아요
+  while (box.children.length > 3) box.firstChild.remove();
   setTimeout(() => el.remove(), 2600);
 }
 
@@ -1899,7 +2245,21 @@ const actions = {
   pend: el => { const c = G.run.shop.items.find(c => c.id === +el.dataset.id); if (c) { G.togglePending(c); paint(); const a = $('#swapArea'); if (a) a.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' }); } },
   swap: el => { const c = R.card(G.run, +el.dataset.id); if (c) { G.swap(c); paint(); } },
   cancelSwap: () => { G.run.shop.pendingID = null; paint(); },
-  leaveShop: () => { G.leaveShop(); paint(); }
+  leaveShop: () => { G.leaveShop(); paint(); },
+  restock: () => { G.restock(); paint(); },
+  reroll: () => { G.rerollPerks(); paint(); },
+  sharpen: () => { G.sharpen(); paint(); },
+  equip: el => {
+    const k = el.dataset.k, slot = ui.selectedSlot;
+    Store.update(slot, p => {
+      const eq = p.equipped || (p.equipped = []);
+      const i = eq.indexOf(k);
+      if (i >= 0) eq.splice(i, 1);
+      else if (eq.length < PERK_SLOTS && (p.perksUnlocked || []).includes(k)) eq.push(k);
+    });
+    Sound.play('place');
+    paint();
+  }
 };
 
 document.addEventListener('click', e => {

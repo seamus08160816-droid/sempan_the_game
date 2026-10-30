@@ -59,33 +59,52 @@ struct CardView: View {
 
     @ViewBuilder
     private var face: some View {
+        // 밑은 제 크기, 지수와 괄호만 작게 써요
         let small = Font.hand(fontSize * 0.6)
+        let up = fontSize * 0.4
+        let n = "\(card.trInput)"
         if card.kind == .op {
             Text(card.op?.symbol ?? "")
         } else if let tr = card.tr {
             switch tr {
-            case .sq:
-                Text("\(card.trInput)\(Text("2").font(small).baselineOffset(fontSize * 0.4))")
-            case .pow2:
-                Text("\(Text("2").font(small))\(Text("\(card.trInput)").font(small).baselineOffset(fontSize * 0.4))")
-            case .exp:
-                Text("\(Text("e").font(small))\(Text("\(card.trInput)").font(small).baselineOffset(fontSize * 0.4))")
-            case .fact:
-                Text("\(card.trInput)\(Text("!").font(small))")
+            case .sq: Text("\(n)\(Text("2").font(small).baselineOffset(up))")
+            case .pow2: Text("2\(Text(n).font(small).baselineOffset(up))")
+            case .exp: Text("e\(Text(n).font(small).baselineOffset(up))")
+            case .fact: Text("\(n)!")
+            case .selfPow: Text("\(n)\(Text(n).font(small).baselineOffset(up))")
+            case .sfact: Text("sf\(Text("(\(n))").font(small))")
+            case .hfact: Text("H\(Text("(\(n))").font(small))")
+            case .tet: Text("3\(Text("↑↑").font(small))\(n)")
             }
         } else {
             Text("\(card.v)")
         }
     }
 
+    private enum BadgeLook { case op, gold, fire, plain, up }
+
+    private var badgeItems: [(label: String, look: BadgeLook)] {
+        var items: [(String, BadgeLook)] = card.enh.map { e in
+            let label = e.badge + (e == .stack ? "+\(Fmt.n(card.bonus))" : "") + (e == .fire ? Fmt.n(fireBonus) : "")
+            return (label, e.isOpPerk ? .op : e == .gold ? .gold : e == .fire ? .fire : .plain)
+        }
+        if card.up > 0 { items.append(("▲\(card.up * 3)", .up)) }
+        return items
+    }
+
+    /// 배지가 3개 이상이면 작게 줄여 두 줄로 쌓아요 (잘리지 않게)
     private var badges: some View {
-        HStack(spacing: 2) {
-            ForEach(card.enh, id: \.self) { e in
-                badge(e)
-            }
-            if card.up > 0 {
-                Text("▲\(card.up * 3)")
-                    .badgeStyle(size: badgeSize, fg: Theme.ink, bg: Theme.paper, border: Theme.edge)
+        let items = badgeItems
+        let many = items.count >= 3
+        let size = many ? badgeSize * 0.8 : badgeSize
+        let rows = stride(from: 0, to: items.count, by: many ? 2 : max(1, items.count)).map { Array(items[$0..<min($0 + (many ? 2 : items.count), items.count)]) }
+        return VStack(spacing: 1) {
+            ForEach(rows.indices, id: \.self) { r in
+                HStack(spacing: many ? 1 : 2) {
+                    ForEach(rows[r].indices, id: \.self) { k in
+                        badge(rows[r][k].label, rows[r][k].look, size: size)
+                    }
+                }
             }
         }
         .minimumScaleFactor(0.5)
@@ -93,16 +112,13 @@ struct CardView: View {
     }
 
     @ViewBuilder
-    private func badge(_ e: Enh) -> some View {
-        let label = e.badge + (e == .stack ? "+\(Fmt.n(card.bonus))" : "") + (e == .fire ? Fmt.n(fireBonus) : "")
-        if e.isOpPerk {
-            Text(label).badgeStyle(size: badgeSize, fg: .white, bg: Theme.red, border: Theme.red)
-        } else if e == .gold {
-            Text(label).badgeStyle(size: badgeSize, fg: Theme.hl, bg: Theme.hlText, border: Theme.hlText)
-        } else if e == .fire {
-            Text(label).badgeStyle(size: badgeSize, fg: Theme.red, bg: Theme.paper, border: Theme.red)
-        } else {
-            Text(label).badgeStyle(size: badgeSize, fg: Theme.text, bg: Theme.paper, border: Theme.edge)
+    private func badge(_ label: String, _ look: BadgeLook, size: CGFloat) -> some View {
+        switch look {
+        case .op: Text(label).badgeStyle(size: size, fg: .white, bg: Theme.red, border: Theme.red)
+        case .gold: Text(label).badgeStyle(size: size, fg: Theme.hl, bg: Theme.hlText, border: Theme.hlText)
+        case .fire: Text(label).badgeStyle(size: size, fg: Theme.red, bg: Theme.paper, border: Theme.red)
+        case .plain: Text(label).badgeStyle(size: size, fg: Theme.text, bg: Theme.paper, border: Theme.edge)
+        case .up: Text(label).badgeStyle(size: size, fg: Theme.ink, bg: Theme.paper, border: Theme.edge)
         }
     }
 }

@@ -44,15 +44,16 @@ struct GameView: View {
             if let over = run.over {
                 GameOverOverlay(session: session, info: over, onExit: onExit)
             }
-            if let boss = session.bossIntro {
-                BossIntroOverlay(node: boss, act: run.act, hp: run.hpFor(boss.floor, .boss))
+            if let intro = session.intro {
+                IntroOverlay(intro: intro)
+                    .id(intro.id)
                     .zIndex(5)
             }
             ToastStack(toasts: session.toasts)
         }
         .animation(.easeOut(duration: 0.3), value: run.reward?.idx)
         .animation(.easeOut(duration: 0.3), value: run.over == nil)
-        .animation(.easeInOut(duration: 0.25), value: session.bossIntro?.id)
+        .animation(.easeInOut(duration: 0.25), value: session.intro?.id)
         .sheet(isPresented: $showDeck) { DeckSheet(session: session) }
         .sheet(isPresented: $showSound) { SoundSettingsSheet() }
     }

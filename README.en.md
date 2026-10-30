@@ -37,7 +37,7 @@ Gold = kill reward + overkill gold + remaining calculations × rate + remaining 
 | Reversal (−) | If the subtraction would go negative, adds the two numbers instead and multiplies by 4 |
 | Exact (÷) | If the division is exact, multiplies instead and doubles the result (numbers in hand that divide evenly glow) |
 
-× cards are powerful but cannot be enhanced.
+× cards are powerful but cannot be enhanced. From act 6, a perk can evolve a × card into a ^ (power) card, whose exponent is capped at 3.
 
 **Number transformations (unlocked per act)**
 | Unlocked | Transformation | Input cap |
@@ -46,6 +46,34 @@ Gold = kill reward + overkill gold + remaining calculations × rate + remaining 
 | Act 3 | Power of two 2ⁿ | 15 |
 | Act 4 | Natural exponent eⁿ | 12 |
 | Act 5 | Factorial n! | 10 |
+| Act 6 | Self-power nⁿ | 9 |
+| Act 7 | Superfactorial sf(n) = 1!×2!×…×n! | 8 |
+| Act 8 | Hyperfactorial H(n) = 1¹×2²×…×nⁿ | 7 |
+| Boss reward from act 6 | Tetration 3↑↑n | 3 |
+
+Perk offers never suggest a transformation that lowers a card's value, and the same kind of perk never appears twice in one offer.
+
+**Dimension ascent (log stage)**
+After act 8 the game enters the log stage. Monster HP is shown as a power of ten (e.g. 10^60), and the number of digits in your result (log₁₀) becomes the base damage; enhancements apply to those digits. HP and prices restart from the act 1 curve, and gold is converted to the new scale. Very large numbers are handled as logarithms internally, so calculations never overflow.
+
+**Perks**
+Perks are unlocked outside of runs, and up to 3 can be equipped. You start with none and unlock one at a time by reaching deeper floors. Change your loadout from the main menu; it applies from the next new game. Each perk is balanced to be worth roughly one free shop restock per act.
+
+| Perk | Effect | Unlocks at |
+|---|---|---|
+| 🔄 Restock | Once per act, refresh the shop for free | Act 1, floor 3 |
+| 👛 Allowance | Gold at the start of each act (price level ×12) | Act 1, floor 6 |
+| 🎟️ Coupon | First shop purchase each act is 30% off | Act 1, floor 10 |
+| 🎲 Reroll | Once per act, reroll the perk choices | Act 2, floor 3 |
+| ✏️ Sharpen | Once per act, redraw your whole hand in combat (no discard used) | Act 2, floor 6 |
+| 📖 Study | Your first hand in each fight has at least 4 number cards | Act 2, floor 10 |
+| 🏦 Interest | 10% of your remaining gold when leaving a shop (max price level ×10) | Act 3, floor 5 |
+| 🍀 Four-leaf clover | Luck chance 25% → 35% | Act 3, floor 10 |
+| 🏹 Elite hunter | 4 perk choices after defeating an elite | Act 4, floor 10 |
+| 💪 Second wind | Once per act, one extra calculation if the enemy has 20% HP or less left | Act 5, floor 10 |
+
+**Sound**
+Sound effects and music are synthesized by `sound/gen.py` with no recordings. Bigger hits sound higher and harsher, and a heavy bell tolls before each boss. Music and sound effects can each be turned on or off.
 
 ## Download and play
 
@@ -71,7 +99,7 @@ python3 web/build.py
 cd web/dist && npx vercel deploy --prod
 
 # Android: an APK wrapping the web build in a WebView (Android SDK build-tools 35, JDK 11+)
-android/build.sh 1.0.0-beta.1 1
+android/build.sh 1.0.0-beta.2 2
 ```
 
 The web and Android builds share the same `web/index.html`. When changing game rules, update both the Swift code (`Game/`) and the web code (`web/index.html`).
@@ -87,6 +115,9 @@ Most values live in `CFG` and the `Transform` enum at the top of `sempan_the_gam
 | `goldA`, `goldK`, `goldCap` | Overkill gold curve |
 | `playGold`, `discGold` | Gold per remaining calculation / discard |
 | `fireBase`, `firePow` | Size of the Fire bonus |
+| `midHP` | Extra HP multiplier for the mid-game (acts 4–6) |
+| `powCap` | Exponent cap for ^ cards |
+| `logAct` | First act of the log stage |
 | `Transform.cap` | Input cap for each transformation |
 
 ## Project layout
@@ -95,7 +126,9 @@ Most values live in `CFG` and the `Transform` enum at the top of `sempan_the_gam
 |---|---|
 | `Game/GameModels.swift` | Balance values, cards, enhancements, transformations, map, HP and economy formulas |
 | `Game/GameSession.swift` | Map generation, combat and equation evaluation, perks, shop |
-| `Game/Progress.swift` | Three save slots, achievements, card collection |
+| `Game/Progress.swift` | Three save slots, achievements, card collection, perks |
+| `Game/Sound.swift` | Sound effect and music playback |
+| `sound/gen.py` | Sound effect and music synthesis script |
 | `Views/` | Main menu, map, combat (fanned hand), shop, theme |
 | `web/` | Web build (single HTML file) and the font-embedding build script |
 | `android/` | Android WebView app that hosts the web build, plus its build script |

@@ -73,7 +73,7 @@ struct FightView: View {
                     .rotationEffect(.degrees(-6))
             }
         }
-        let hp = Text("체력 \(Text("\(Fmt.n(left)) / \(Fmt.n(f.hpMax))").font(.hand(22)).foregroundStyle(Theme.red))")
+        let hp = Text("체력 \(Text("\(session.run.hpText(left)) / \(session.run.hpText(f.hpMax))").font(.hand(22)).foregroundStyle(Theme.red))")
             .font(.subheadline)
             .foregroundStyle(Theme.muted)
             .lineLimit(1)
@@ -191,7 +191,7 @@ struct FightView: View {
                 Text(msg).font(.subheadline).foregroundStyle(Theme.muted)
             } else if v.ok {
                 let r = session.evaluate(sel, roll: false)
-                Text("= \(Fmt.n(r.final))\(r.hasLuck ? "  (행운 미포함)" : "")")
+                Text("= \(session.run.dmgText(r.final))\(r.hasLuck ? "  (행운 미포함)" : "")")
                     .font(.hand(22)).foregroundStyle(Theme.ink)
             } else if !session.busy && !(wide && sel.isEmpty) {
                 // 가로 화면에서는 빈 수식 칸 안내("손패를 누르거나…")를 생략해요
@@ -275,7 +275,7 @@ struct FightView: View {
         .buttonStyle(MainButtonStyle())
         .disabled(!canPlay)
         .accessibilityLabel("계산하기, \(f.playsLeft)번 남음")
-        return Group {
+        return VStack(alignment: .leading, spacing: 8) {
             if wide {
                 // 가로: 왼쪽 칸 아래에 세로로 쌓아요
                 VStack(spacing: 8) {
@@ -289,6 +289,14 @@ struct FightView: View {
                     play
                         .frame(maxWidth: .infinity)
                 }
+            }
+            if session.run.hasPerk(.sharpen) {
+                // 연필 깎기 퍽: 막마다 한 번 손패를 모두 새로
+                let ready = session.run.perkReady(.sharpen)
+                Button("✏️ 연필 깎기: 손패 새로 뽑기 \(ready ? "(이번 막 1번)" : "(이번 막에 씀)")") { session.sharpen() }
+                    .buttonStyle(ChipButtonStyle())
+                    .disabled(session.busy || !ready)
+                    .opacity(session.busy || !ready ? 0.4 : 1)
             }
         }
         .lineLimit(1)

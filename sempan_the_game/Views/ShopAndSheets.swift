@@ -9,7 +9,16 @@ struct ShopView: View {
         if let shop = session.run.shop {
             VStack(alignment: .leading, spacing: 12) {
                 Text("상점").font(.hand(28)).foregroundStyle(Theme.ink)
-                Text(shop.msg).font(.subheadline).foregroundStyle(Theme.muted)
+                let coupon = session.run.perkReady(.coupon)
+                Text(shop.msg + (coupon ? " 🎟️ 할인권: 이번 막 첫 구매가 30% 싸요." : "")).font(.subheadline).foregroundStyle(Theme.muted)
+                if session.run.hasPerk(.restock) {
+                    // 재입고 퍽: 막마다 한 번 무료로 새 물건
+                    let ready = session.run.perkReady(.restock)
+                    Button("🔄 재입고 \(ready ? "(무료, 이번 막 1번)" : "(이번 막에 씀)")") { session.restock() }
+                        .buttonStyle(ChipButtonStyle())
+                        .disabled(!ready)
+                        .opacity(ready ? 1 : 0.4)
+                }
                 Text("사기").font(.footnote.weight(.semibold)).foregroundStyle(Theme.muted)
                 if shop.items.isEmpty {
                     Text("다 팔렸어요.").font(.subheadline).foregroundStyle(Theme.muted)
@@ -32,11 +41,11 @@ struct ShopView: View {
                 .frame(width: 52)
             VStack(alignment: .leading, spacing: 2) {
                 Text(c.label).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
-                Text(extras.isEmpty ? (c.op == .mul ? "강화할 수 없는 곱셈 카드" : "강화 없는 기본 카드") : extras)
+                Text(extras.isEmpty ? (c.op == .mul ? "강화할 수 없는 곱셈 카드" : c.op == .pow ? "거듭제곱 카드 (지수는 \(Int(CFG.powCap))까지)" : "강화 없는 기본 카드") : extras)
                     .font(.caption).foregroundStyle(Theme.muted)
             }
             Spacer(minLength: 0)
-            Button(pending ? "고르는 중" : "\(Fmt.n(price)) 골드") { session.togglePending(c) }
+            Button(pending ? "고르는 중" : "\(Fmt.n(price)) 골드\(session.run.perkReady(.coupon) ? " 🎟️" : "")") { session.togglePending(c) }
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Theme.paper)
                 .padding(.horizontal, 10).padding(.vertical, 8)
@@ -85,6 +94,7 @@ struct RewardOverlay: View {
                         .frame(maxWidth: .infinity)
                     VStack(spacing: 10) {
                         ForEach(reward.offers) { o in offer(o) }
+                        rerollButton
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -94,8 +104,21 @@ struct RewardOverlay: View {
                 VStack(alignment: .leading, spacing: 12) {
                     summary
                     ForEach(reward.offers) { o in offer(o) }
+                    rerollButton
                 }
             }
+        }
+    }
+
+    /// 다시 뽑기 퍽: 막마다 한 번 선택지를 새로
+    @ViewBuilder
+    private var rerollButton: some View {
+        if session.run.hasPerk(.reroll) {
+            let ready = session.run.perkReady(.reroll)
+            Button("🎲 다시 뽑기 \(ready ? "(이번 막 1번)" : "(이번 막에 씀)")") { session.rerollPerks() }
+                .buttonStyle(ChipButtonStyle())
+                .disabled(!ready)
+                .opacity(ready ? 1 : 0.4)
         }
     }
 
@@ -198,14 +221,19 @@ struct DeckSheet: View {
                 }
                 Group {
                     if inFight, let f = run.fight {
-                        Text("이번 전투에서 뽑을 카드: 숫자 \(f.numDraw.count)장, 기호 \(f.opDraw.count)장 / 덱 \(run.deck.count)장")
+                        Text("이번 전투에서 뽑을 카드: 숫자 \(f.numDraw.count)장, 기호 \(f.opDraw.count)장 / 덱 \(run.deck.count)장. 회색은 손패에 있거나 이미 쓴 카드예요.")
                     } else {
                         Text("손패 \(run.hand)장, 계산 \(run.plays)번, 버리기 \(run.discards)번 / 덱 \(run.deck.count)장")
                     }
                 }
                 .font(.subheadline).foregroundStyle(Theme.muted)
-                grid("숫자 덱 \(nums.count)장", nums)
-                grid("기호 덱 \(ops.count)장", ops)
+                perkList(run)
+                // 전투 중에는 버리기로 새로 나올 수 있는 카드만 원래 색이에요 (뽑을 덱이 비면 버린 더미를 섞어 다시 써요)
+                let drawable: Set<Int>? = inFight ? run.fight.map { f in
+                    Set(f.numDraw.count + f.opDraw.count > 0 ? f.numDraw + f.opDraw : f.numPile + f.opPile)
+                } : nil
+                grid("숫자 덱 \(nums.count)장", nums, drawable: drawable)
+                grid("기호 덱 \(ops.count)장", ops, drawable: drawable)
                 Text(info)
                     .font(.footnote)
                     .foregroundStyle(Theme.text)
@@ -221,15 +249,32 @@ struct DeckSheet: View {
         .presentationDetents([.large])
     }
 
-    private func grid(_ title: String, _ cards: [Card]) -> some View {
+    private func grid(_ title: String, _ cards: [Card], drawable: Set<Int>?) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title).font(.footnote.weight(.semibold)).foregroundStyle(Theme.muted)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 48), spacing: 6)], spacing: 6) {
                 ForEach(cards) { c in
+                    let dim = drawable.map { !$0.contains(c.id) } ?? false
                     Button { info = session.describe(c) } label: {
                         CardView(card: c, fireBonus: session.run.fireBonus, fontSize: 24, badgeSize: 7)
+                            .grayscale(dim ? 1 : 0)
+                            .opacity(dim ? 0.32 : 1)
                     }
                     .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func perkList(_ run: RunState) -> some View {
+        let perks = (run.perks ?? []).compactMap(MetaPerk.init(rawValue:))
+        if !perks.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("장착한 퍽").font(.footnote.weight(.semibold)).foregroundStyle(Theme.muted)
+                ForEach(perks) { k in
+                    Text("\(Text("\(k.icon) \(k.name)").bold().foregroundStyle(Theme.ink))  \(k.desc)\(k.oncePerAct ? (run.perkReady(k) ? " (이번 막에 아직 안 씀)" : " (이번 막에 씀)") : "")")
+                        .font(.caption).foregroundStyle(Theme.muted)
                 }
             }
         }
@@ -245,6 +290,10 @@ struct DeckSheet: View {
                 Text("\(Text(t.text("n")).bold().foregroundStyle(Theme.ink))  \(t.name) 변신 (\(t.act)막부터\(run.act >= t.act ? ", 해금됨" : "")): 숫자 n을 \(t.text("n"))으로 계산해요. n은 \(t.cap)까지만 적용돼요")
             }
             Text("× 카드는 강력한 대신 강화할 수 없어요.")
+            Text("\(Text("^").bold().foregroundStyle(Theme.red))  거듭제곱 카드 (6막부터 × 카드가 진화): 지수는 \(Int(CFG.powCap))까지예요.")
+            if run.isLog {
+                Text("로그 단계: 체력은 10의 거듭제곱이고, 계산 결과의 자릿수(log₁₀)에 강화 효과가 붙어 피해가 돼요.")
+            }
             Text("골드(지금 층 기준): 처치 \(Fmt.n((CFG.killGold * e).rounded())) + 초과 피해 골드(일반 몹 기준 최대 \(Fmt.n((CFG.goldCap * e).rounded()))) + 남은 계산당 \(Fmt.n(r.play)) + 남은 버리기당 \(Fmt.n(r.disc)). 지금 물가 \(Fmt.n(e))배.")
         }
         .font(.caption)

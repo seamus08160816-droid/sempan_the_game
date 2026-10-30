@@ -8,6 +8,8 @@ enum CFG {
     static let growthAfter: Double = 1.6              // 표 이후 막의 층당 배율
     static let eliteMult: Double = 1.5
     static let bossMult: Double = 1.8
+    /// 중반부(4~6막) 몹 체력 추가 배율. 보상은 그대로라 실제로 어려워져요
+    static let midHP: [Int: Double] = [4: 1.2, 5: 1.25, 6: 1.3]
     static let actLen = 10
     static let shopRate = 0.22
     static let eliteRate = 0.15
@@ -29,6 +31,8 @@ enum CFG {
     static let goldCap: Double = 20
     static let eliteGoldMult: Double = 1
     static let bossGoldMult: Double = 1
+    static let powCap: Double = 3                     // ^ 카드 지수 상한
+    static let logAct = 9                             // 이 막부터 로그 단계 (차원 상승)
 }
 
 // MARK: - 카드 구성 요소
@@ -38,7 +42,7 @@ enum CardKind: String, Codable {
 }
 
 enum Op: String, Codable, CaseIterable {
-    case add = "+", sub = "-", div = "/", mul = "*"
+    case add = "+", sub = "-", div = "/", mul = "*", pow = "^"
 
     var symbol: String {
         switch self {
@@ -46,11 +50,15 @@ enum Op: String, Codable, CaseIterable {
         case .sub: "−"
         case .mul: "×"
         case .div: "÷"
+        case .pow: "^"
         }
     }
 
-    /// 손패 정렬 순서 (원본 ORD = '+-/*')
+    /// 손패 정렬 순서 ('+-/*^')
     var order: Int { Op.allCases.firstIndex(of: self) ?? 0 }
+
+    /// 강력한 대신 강화할 수 없는 기호
+    var isPlain: Bool { self == .mul || self == .pow }
 }
 
 /// 카드 강화
@@ -127,6 +135,9 @@ enum Enh: String, Codable, CaseIterable {
 /// 숫자 변신 강화. 막마다 하나씩 해금. cap은 변신에 넣는 값의 상한
 enum Transform: String, Codable, CaseIterable {
     case sq, pow2, exp, fact
+    case selfPow = "self", sfact, hfact
+    /// 테트레이션 3↑↑n: 보스 보상으로만 나와요
+    case tet
 
     var name: String {
         switch self {
@@ -134,6 +145,10 @@ enum Transform: String, Codable, CaseIterable {
         case .pow2: "2의 거듭제곱"
         case .exp: "자연지수"
         case .fact: "팩토리얼"
+        case .selfPow: "자기거듭제곱"
+        case .sfact: "슈퍼팩토리얼"
+        case .hfact: "하이퍼팩토리얼"
+        case .tet: "테트레이션"
         }
     }
 
@@ -143,6 +158,10 @@ enum Transform: String, Codable, CaseIterable {
         case .pow2: 3
         case .exp: 4
         case .fact: 5
+        case .selfPow: 6
+        case .sfact: 7
+        case .hfact: 8
+        case .tet: 6
         }
     }
 
@@ -152,6 +171,10 @@ enum Transform: String, Codable, CaseIterable {
         case .pow2: 15
         case .exp: 12
         case .fact: 10
+        case .selfPow: 9
+        case .sfact: 8
+        case .hfact: 7
+        case .tet: 3
         }
     }
 
@@ -161,15 +184,30 @@ enum Transform: String, Codable, CaseIterable {
         case .pow2: 22
         case .exp: 32
         case .fact: 44
+        case .selfPow: 56
+        case .sfact: 70
+        case .hfact: 85
+        case .tet: 60
         }
     }
+
+    var isSpecial: Bool { self == .tet }
+
+    /// 막마다 하나씩 해금되는 변신 사다리 (특별 카드 제외)
+    static let ladder = allCases.filter { !$0.isSpecial }
+
+    private static func fact(_ n: Int) -> Double { (1...max(1, n)).reduce(1.0) { $0 * Double($1) } }
 
     func apply(_ n: Int) -> Double {
         switch self {
         case .sq: return Double(n * n)
-        case .pow2: return pow(2, Double(n))
+        case .pow2: return Foundation.pow(2, Double(n))
         case .exp: return Foundation.exp(Double(n)).rounded()
-        case .fact: return (1...max(1, n)).reduce(1.0) { $0 * Double($1) }
+        case .fact: return Self.fact(n)
+        case .selfPow: return Foundation.pow(Double(n), Double(n))
+        case .sfact: return (1...max(1, n)).reduce(1.0) { $0 * Self.fact($1) }
+        case .hfact: return (1...max(1, n)).reduce(1.0) { $0 * Foundation.pow(Double($1), Double($1)) }
+        case .tet: return (0..<n).reduce(1.0) { r, _ in Foundation.pow(3, r) }
         }
     }
 
@@ -179,10 +217,87 @@ enum Transform: String, Codable, CaseIterable {
         case .pow2: "2^\(v)"
         case .exp: "e^\(v)"
         case .fact: "\(v)!"
+        case .selfPow: "\(v)^\(v)"
+        case .sfact: "sf(\(v))"
+        case .hfact: "H(\(v))"
+        case .tet: "3↑↑\(v)"
         }
     }
 
     var index: Int { Transform.allCases.firstIndex(of: self) ?? 0 }
+}
+
+// MARK: - 큰 수
+
+/// 1e300을 넘으면 log₁₀로 들고 다녀서 무한대가 되지 않아요. 작은 수는 그대로 계산해 1~8막은 정확해요
+struct BigNum {
+    var s: Double       // 부호 -1, 0, 1
+    var v: Double?      // 작은 수일 때 값
+    var l: Double = 0   // 큰 수일 때 log₁₀|x|
+
+    static let big = 1e300
+
+    static func of(_ x: Double) -> BigNum { BigNum(s: x > 0 ? 1 : x < 0 ? -1 : 0, v: x) }
+
+    static func fromLog(_ s: Double, _ l: Double) -> BigNum {
+        if s == 0 { return .of(0) }
+        return l < 300 ? .of(s * Foundation.pow(10, l)) : BigNum(s: s, v: nil, l: l)
+    }
+
+    var isSmall: Bool { v != nil }
+    /// |x|의 자릿수 (log₁₀|x|)
+    var log: Double { v.map { log10(abs($0)) } ?? l }
+    var num: Double { v ?? s * .infinity }
+    var negated: BigNum { v.map { .of(-$0) } ?? BigNum(s: -s, v: nil, l: l) }
+
+    static func + (a: BigNum, b: BigNum) -> BigNum {
+        if a.s == 0 { return b }
+        if b.s == 0 { return a }
+        if let x = a.v, let y = b.v, abs(x + y) < big { return .of(x + y) }
+        let (hi, lo, sh) = a.log >= b.log ? (a.log, b.log, a.s) : (b.log, a.log, b.s)
+        if a.s == b.s { return .fromLog(sh, hi + log10(1 + Foundation.pow(10, lo - hi))) }
+        if hi - lo < 1e-12 { return .of(0) }
+        return .fromLog(sh, hi + log10(1 - Foundation.pow(10, lo - hi)))
+    }
+
+    static func - (a: BigNum, b: BigNum) -> BigNum { a + b.negated }
+
+    static func * (a: BigNum, b: BigNum) -> BigNum {
+        if a.s == 0 || b.s == 0 { return .of(0) }
+        if let x = a.v, let y = b.v, abs(x * y) < big { return .of(x * y) }
+        return .fromLog(a.s * b.s, a.log + b.log)
+    }
+
+    static func / (a: BigNum, b: BigNum) -> BigNum {
+        if a.s == 0 || b.s == 0 { return .of(0) }
+        if let x = a.v, let y = b.v, abs(x / y) < big { return .of(x / y) }
+        return .fromLog(a.s * b.s, a.log - b.log)
+    }
+
+    /// a^b. 지수는 ±powCap에서 멈춰요. 음수 밑은 지수가 홀수 정수일 때만 음수가 돼요
+    func power(_ b: BigNum) -> BigNum {
+        let e = max(-CFG.powCap, min(CFG.powCap, b.num))
+        if s == 0 { return .of(0) }
+        let sign: Double = s < 0 && e == e.rounded() && Int(abs(e)) % 2 == 1 ? -1 : 1
+        if let x = v {
+            let r = Foundation.pow(abs(x), e)
+            if r.isFinite && r < BigNum.big { return .of(sign * r) }
+        }
+        return .fromLog(sign, e * log)
+    }
+
+    /// 두 수가 정확히 나누어떨어지는지 (아주 큰 수는 확인할 수 없어 아니라고 봐요)
+    static func divides(_ a: BigNum, _ b: BigNum) -> Bool {
+        guard let x = a.v, let y = b.v, abs(x) < 1e15, abs(y) < 1e15 else { return false }
+        return Enh.divides(x, y)
+    }
+
+    var text: String {
+        if let v { return Fmt.n(v) }
+        let e = floor(l)
+        let mant = s * Foundation.pow(10, l - e)
+        return String(format: "%.2f×10^", mant) + (e < 1e15 ? Fmt.n(e) : Fmt.n(e))
+    }
 }
 
 // MARK: - 카드
@@ -227,6 +342,7 @@ struct Card: Codable, Identifiable, Equatable {
             switch op {
             case .mul: value = 30
             case .div: value = 12
+            case .pow: value = 45
             default: value = 10
             }
         }
@@ -335,6 +451,22 @@ enum PerkKind: Codable, Equatable {
     case opPerk(Enh)
     case transform(Transform)
     case handSize, plays, discards
+    /// × 카드를 ^ 카드로 진화 (6막부터)
+    case evolve
+
+    /// 같은 종류의 특전을 한 선택지에 두 번 내지 않으려고 비교하는 열쇠
+    var sameKindKey: String {
+        switch self {
+        case .upNum: "up"
+        case .enchant(let e): "en:\(e.rawValue)"
+        case .opPerk(let e): "op:\(e.rawValue)"
+        case .transform(let t): "tr:\(t.rawValue)"
+        case .handSize: "hand"
+        case .plays: "plays"
+        case .discards: "disc"
+        case .evolve: "evolve"
+        }
+    }
 }
 
 struct Perk: Codable, Identifiable, Equatable {
@@ -350,6 +482,14 @@ struct RewardState: Codable {
     var count: Int
     var idx: Int
     var offers: [Perk]
+}
+
+/// 화면을 덮는 등장 장면 (보스, 차원 상승)
+struct Intro: Equatable {
+    let id = UUID()
+    let icon: String
+    let title: String
+    let sub: String
 }
 
 struct ShopState: Codable {
@@ -393,14 +533,32 @@ struct RunState: Codable {
     var lastGold: GoldBreakdown?
     var over: GameOverInfo?
     var startedAt = Date()
+    /// 이번 판에 장착한 퍽 (시작할 때 정해져요). 예전 저장과 호환되게 옵셔널
+    var perks: [String]?
+    /// 막마다 한 번 쓰는 퍽: 마지막으로 쓴 막
+    var perkUsed: [String: Int]?
 
     var econ: Double { econ(at: floor) }
 
     func econ(at f: Int) -> Double {
-        pow(Self.baseHPAt(depthOf(max(1, f))) / CFG.baseHP, CFG.econPow)
+        pow(Self.baseHPAt(ladderDepth(max(1, f))) / CFG.baseHP, CFG.econPow)
     }
 
     func depthOf(_ f: Int) -> Int { (act - 1) * CFG.actLen + f }
+
+    /// 로그 단계(차원 상승 뒤)에서는 체력·물가 사다리를 1막부터 다시 올라요
+    var isLog: Bool { act >= CFG.logAct }
+
+    func ladderDepth(_ f: Int) -> Int { isLog ? (act - CFG.logAct) * CFG.actLen + f : depthOf(f) }
+
+    var actName: String { isLog ? "로그 \(act - CFG.logAct + 1)막" : "\(act)막" }
+
+    /// 로그 단계의 체력은 10의 거듭제곱, 피해는 자릿수예요
+    func hpText(_ x: Double) -> String { isLog ? "10^\(Fmt.n(x))" : Fmt.n(x) }
+    func dmgText(_ x: Double) -> String { isLog ? "\(Fmt.n(x))자리" : Fmt.n(x) }
+
+    func hasPerk(_ k: MetaPerk) -> Bool { (perks ?? []).contains(k.rawValue) }
+    func perkReady(_ k: MetaPerk) -> Bool { hasPerk(k) && perkUsed?[k.rawValue] != act }
 
     static func growthOf(_ act: Int) -> Double {
         act - 1 < CFG.actGrowth.count ? CFG.actGrowth[act - 1] : CFG.growthAfter
@@ -417,9 +575,10 @@ struct RunState: Codable {
     }
 
     func hpFor(_ f: Int, _ type: NodeType) -> Double {
-        var h = Self.baseHPAt(depthOf(max(1, f)))
+        var h = Self.baseHPAt(ladderDepth(max(1, f)))
         if type == .elite { h *= CFG.eliteMult }
         if type == .boss { h *= CFG.bossMult }
+        if !isLog { h *= CFG.midHP[act] ?? 1 }
         return (h / 10).rounded() * 10
     }
 
@@ -455,9 +614,9 @@ struct RunState: Codable {
         return n.floor == 1
     }
 
-    var unlockedTR: [Transform] { Transform.allCases.filter { act >= $0.act } }
+    var unlockedTR: [Transform] { Transform.ladder.filter { act >= $0.act } }
 
-    var whereText: String { floor == 0 ? "\(act)막 출발" : "\(act)막 \(floor)층" }
+    var whereText: String { floor == 0 ? "\(actName) 출발" : "\(actName) \(floor)층" }
 }
 
 // MARK: - 숫자 표시

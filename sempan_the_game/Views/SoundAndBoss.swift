@@ -54,11 +54,9 @@ struct SoundSettingsSheet: View {
 
 // MARK: - 보스 등장
 
-/// 보스 앞: 어두운 화면에 붉은 띠가 미끄러져 들어오고 이름판이 꽂혀요 (종소리는 GameSession이 내요)
-struct BossIntroOverlay: View {
-    let node: MapNode
-    let act: Int
-    let hp: Double
+/// 보스 앞·차원 상승: 어두운 화면에 붉은 띠가 미끄러져 들어오고 이름판이 꽂혀요 (종소리는 GameSession이 내요)
+struct IntroOverlay: View {
+    let intro: Intro
     @State private var bands = false
     @State private var slam = false
     @State private var quake = 0
@@ -77,12 +75,12 @@ struct BossIntroOverlay: View {
                     .rotationEffect(.degrees(-6))
                     .offset(x: bands ? 0 : w * 1.4, y: h * 0.165)
                 VStack(spacing: 4) {
-                    Text("👑").font(.system(size: 60))
-                    Text(node.name)
+                    Text(intro.icon).font(.system(size: 60))
+                    Text(intro.title)
                         .font(.hand(52))
                         .foregroundStyle(.white)
                         .shadow(color: .black.opacity(0.35), radius: 0, y: 4)
-                    Text("\(act)막 보스 · 체력 \(Fmt.n(hp))")
+                    Text(intro.sub)
                         .font(.subheadline.weight(.semibold))
                         .tracking(1.5)
                         .foregroundStyle(Color(hex: 0xF5E23B))
