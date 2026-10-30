@@ -48,6 +48,12 @@ def main() -> None:
         faces.append(f"@font-face{{font-family:'Gaegu';font-weight:{weight};font-display:swap;"
                      f"src:url(data:font/woff;base64,{data}) format('woff')}}")
     out = html.replace("/*@FONTS@*/", "\n".join(faces), 1)
+    # 앱과 같은 아이콘 (탭 아이콘, 홈 화면 아이콘). web/icons는 앱 아이콘을 줄인 그림이에요
+    icon = lambda px: "data:image/png;base64," + base64.b64encode((ROOT / "icons" / f"icon-{px}.png").read_bytes()).decode()
+    out = out.replace("<!--@ICONS@-->",
+                      f'<link rel="icon" type="image/png" sizes="32x32" href="{icon(32)}">\n'
+                      f'<link rel="icon" type="image/png" sizes="192x192" href="{icon(192)}">\n'
+                      f'<link rel="apple-touch-icon" sizes="180x180" href="{icon(180)}">', 1)
     # 효과음과 배경음 (sound/gen.py가 만든 WAV)
     sounds = {f.stem: base64.b64encode(f.read_bytes()).decode() for f in sorted(SOUNDS.glob("*.wav"))}
     out = out.replace("/*@SOUNDS@*/", "window.SOUND_DATA=" + json.dumps(sounds) + ";", 1)

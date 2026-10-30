@@ -317,7 +317,8 @@ final class GameSession {
             if let t = Transform.ladder.first(where: { $0.act == run.act }) {
                 msg += " 이제 \(t.name) 변신 강화가 나와요."
             }
-            if run.act == 6 { msg += " 이제 × 카드를 ^ 카드로 진화시킬 수 있고, 보스가 테트레이션을 줘요." }
+            if run.act == 6 { msg += " 이제 × 카드를 ^ 카드로 진화시킬 수 있어요." }
+            if run.act == 8 { msg += " 이번 막 보스부터 테트레이션 카드를 줘요." }
             msg += actStart()
         }
         run.mapMsg = msg
@@ -730,7 +731,7 @@ final class GameSession {
             guard act >= 6, let c = deck.filter({ $0.op == .mul }).randomElement() else { return nil }
             return Perk(kind: .evolve, cardID: c.id, title: "× 카드를 ^ 카드로 진화", desc: "거듭제곱: 왼쪽 수를 오른쪽 수만큼 거듭제곱해요 (지수는 \(Int(CFG.powCap))까지)")
         }
-        // 6막부터 보스 보상: 테트레이션 3↑↑n (입력 1 차이로 값이 수조 배씩 튀어요)
+        // 8막 보스부터 보상: 테트레이션 3↑↑n (입력 1 차이로 값이 수조 배씩 튀어서 로그 단계에서 쓰게 해요)
         let tetra: () -> Perk? = {
             let t = Transform.tet
             guard let c = deck.filter({ $0.kind == .num && $0.tr != .tet && t.apply(min($0.v, t.cap)) > $0.numVal }).randomElement() else { return nil }
@@ -758,7 +759,7 @@ final class GameSession {
         // 같은 카드를 두 번 고르지 않고, 같은 종류의 특전도 두 번 내지 않아요
         var used: Set<String> = []
         func keys(_ o: Perk) -> [String] { [o.cardID.map { "c\($0)" }, "k" + o.kind.sameKindKey].compactMap { $0 } }
-        if node?.type == .boss && run.act >= 6, let t = tetra() {
+        if node?.type == .boss && run.act >= Transform.tet.act, let t = tetra() {
             out.append(t)
             used.formUnion(keys(t))
         }

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#F7F8F3">
 <title>셈판</title>
+<!--@ICONS@-->
 <style>
 /*@FONTS@*/
 :root{
@@ -356,7 +357,7 @@ const CFG = {
   killGold: 5, discGold: 3, playGold: 6,
   goldA: 8, goldK: 0.25, goldCap: 20,
   eliteGoldMult: 1, bossGoldMult: 1,
-  powCap: 3,                           // ^ 카드 지수 상한
+  powCap: 2,                           // ^ 카드 지수 상한 (같은 카드 두 장을 곱한 만큼까지)
   logAct: 9                            // 이 막부터 로그 단계 (차원 상승)
 };
 const VERSION = '1.0.0-beta.2';
@@ -401,9 +402,9 @@ const TR = [
   { key: 'exp',   name: '자연지수',      act: 4, cap: 12, value: 32, f: n => rnd(Math.exp(n)),      txt: v => `e^${v}`,    face: v => `e<sup>${v}</sup>` },
   { key: 'fact',  name: '팩토리얼',      act: 5, cap: 10, value: 44, f: n => fact(Math.max(1, n)),  txt: v => `${v}!`,     face: v => `${v}!` },
   { key: 'self',  name: '자기거듭제곱',  act: 6, cap: 9,  value: 56, f: n => Math.pow(n, n),        txt: v => `${v}^${v}`, face: v => `${v}<sup>${v}</sup>` },
-  { key: 'sfact', name: '슈퍼팩토리얼',  act: 7, cap: 8,  value: 70, f: n => superfact(n),          txt: v => `sf(${v})`,  face: v => `sf<small>(${v})</small>` },
-  { key: 'hfact', name: '하이퍼팩토리얼', act: 8, cap: 7,  value: 85, f: n => hyperfact(n),          txt: v => `H(${v})`,   face: v => `H<small>(${v})</small>` },
-  { key: 'tet',   name: '테트레이션',    act: 6, cap: 3,  value: 60, f: n => tetra3(n), special: true, txt: v => `3↑↑${v}`, face: v => `3<small>↑↑</small>${v}` }
+  { key: 'sfact', name: '슈퍼팩토리얼',  act: 7, cap: 7,  value: 70, f: n => superfact(n),          txt: v => `sf(${v})`,  face: v => `sf<small>(${v})</small>` },
+  { key: 'hfact', name: '하이퍼팩토리얼', act: 8, cap: 6,  value: 85, f: n => hyperfact(n),          txt: v => `H(${v})`,   face: v => `H<small>(${v})</small>` },
+  { key: 'tet',   name: '테트레이션',    act: 8, cap: 3,  value: 60, f: n => tetra3(n), special: true, txt: v => `3↑↑${v}`, face: v => `3<small>↑↑</small>${v}` }
 ];
 
 // ===== 큰 수 =====
@@ -963,7 +964,8 @@ class Game {
       }
       const t = LADDER.find(t => t.act === run.act);
       if (t) msg += ` 이제 ${t.name} 변신 강화가 나와요.`;
-      if (run.act === 6) msg += ' 이제 × 카드를 ^ 카드로 진화시킬 수 있고, 보스가 테트레이션을 줘요.';
+      if (run.act === 6) msg += ' 이제 × 카드를 ^ 카드로 진화시킬 수 있어요.';
+      if (run.act === 8) msg += ' 이번 막 보스부터 테트레이션 카드를 줘요.';
       msg += this.actStart();
     }
     run.mapMsg = msg;
@@ -1338,7 +1340,7 @@ class Game {
       const c = pick(cs);
       return { kind: 'evolve', cardID: c.id, title: '× 카드를 ^ 카드로 진화', desc: `거듭제곱: 왼쪽 수를 오른쪽 수만큼 거듭제곱해요 (지수는 ${CFG.powCap}까지)` };
     };
-    // 6막부터 보스 보상: 테트레이션 3↑↑n (입력 1 차이로 값이 수조 배씩 튀어요)
+    // 8막 보스부터 보상: 테트레이션 3↑↑n (입력 1 차이로 값이 수조 배씩 튀어서 로그 단계에서 쓰게 해요)
     const tetra = () => {
       const t = TR.find(t => t.key === 'tet');
       const cs = deck.filter(c => c.kind === 'num' && c.tr !== 'tet' && t.f(Math.min(c.v, t.cap)) > numVal(c)); if (!cs.length) return null;
@@ -1363,7 +1365,7 @@ class Game {
     const out = [], used = new Set();
     // 같은 카드를 두 번 고르지 않고, 같은 종류의 특전도 두 번 내지 않아요
     const keys = o => [o.cardID != null ? 'c' + o.cardID : null, 'k' + o.kind + ':' + (o.enh || o.tr || '')].filter(Boolean);
-    if (node && node.type === 'boss' && run.act >= 6) {
+    if (node && node.type === 'boss' && run.act >= TR.find(t => t.key === 'tet').act) {
       const t = tetra();
       if (t) { t.id = uid(); out.push(t); keys(t).forEach(k => used.add(k)); }
     }
@@ -1681,7 +1683,7 @@ function paintMap(screen) {
       <p>선으로 이어진 다음 칸으로만 갈 수 있어요. 갈림길은 1~3갈래로 매번 달라져요. 칸 아래 숫자는 몹의 체력이에요.</p>
       <p>몹을 잡으면 골드를 받고 특전을 하나 골라요. 골드는 처치 보상, 넘친 피해(상한 있음), 남은 계산·버리기 횟수로 정해지고, 모두 적 체력에 비례해 커져요. 정예는 체력이 높지만 특전을 두 개 골라요. 상점에 들르면 싸우지 않으니 특전과 골드는 없어요.</p>
       <p>상점에서 숫자 카드는 숫자 카드와, 기호 카드는 기호 카드와 바꿔요. 가격도 적 체력과 함께 올라요.</p>
-      <p>막이 오를 때마다 숫자를 더 크게 바꾸는 변신 강화가 하나씩 해금돼요. 2막 제곱, 3막 2의 거듭제곱, 4막 자연지수, 5막 팩토리얼, 6막 자기거듭제곱, 7막 슈퍼팩토리얼, 8막 하이퍼팩토리얼 순이에요. 6막부터는 × 카드를 ^ 카드로 진화시킬 수 있고, 보스가 테트레이션을 줘요.</p>
+      <p>막이 오를 때마다 숫자를 더 크게 바꾸는 변신 강화가 하나씩 해금돼요. 2막 제곱, 3막 2의 거듭제곱, 4막 자연지수, 5막 팩토리얼, 6막 자기거듭제곱, 7막 슈퍼팩토리얼, 8막 하이퍼팩토리얼 순이에요. 6막부터는 × 카드를 ^ 카드로 진화시킬 수 있고, 8막 보스부터 테트레이션을 줘요.</p>
       <p>${CFG.logAct - 1}막을 넘기면 차원 상승으로 로그 단계가 돼요. 체력은 10의 거듭제곱으로 바뀌고, 계산 결과의 자릿수(log₁₀)만큼 깎여요. 체력과 물가는 다시 1막처럼 시작해요.</p>
     </details></div>`;
   const target = screen.querySelector('.node.reach');

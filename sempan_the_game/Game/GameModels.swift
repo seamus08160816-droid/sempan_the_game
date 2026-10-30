@@ -31,7 +31,7 @@ enum CFG {
     static let goldCap: Double = 20
     static let eliteGoldMult: Double = 1
     static let bossGoldMult: Double = 1
-    static let powCap: Double = 3                     // ^ 카드 지수 상한
+    static let powCap: Double = 2                     // ^ 카드 지수 상한 (같은 카드 두 장을 곱한 만큼까지)
     static let logAct = 9                             // 이 막부터 로그 단계 (차원 상승)
 }
 
@@ -161,7 +161,7 @@ enum Transform: String, Codable, CaseIterable {
         case .selfPow: 6
         case .sfact: 7
         case .hfact: 8
-        case .tet: 6
+        case .tet: 8
         }
     }
 
@@ -172,8 +172,8 @@ enum Transform: String, Codable, CaseIterable {
         case .exp: 12
         case .fact: 10
         case .selfPow: 9
-        case .sfact: 8
-        case .hfact: 7
+        case .sfact: 7
+        case .hfact: 6
         case .tet: 3
         }
     }

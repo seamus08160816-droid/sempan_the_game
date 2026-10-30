@@ -37,7 +37,7 @@ Gold = kill reward + overkill gold + remaining calculations × rate + remaining 
 | Reversal (−) | If the subtraction would go negative, adds the two numbers instead and multiplies by 4 |
 | Exact (÷) | If the division is exact, multiplies instead and doubles the result (numbers in hand that divide evenly glow) |
 
-× cards are powerful but cannot be enhanced. From act 6, a perk can evolve a × card into a ^ (power) card, whose exponent is capped at 3.
+× cards are powerful but cannot be enhanced. From act 6, a perk can evolve a × card into a ^ (power) card, whose exponent is capped at 2.
 
 **Number transformations (unlocked per act)**
 | Unlocked | Transformation | Input cap |
@@ -47,9 +47,11 @@ Gold = kill reward + overkill gold + remaining calculations × rate + remaining 
 | Act 4 | Natural exponent eⁿ | 12 |
 | Act 5 | Factorial n! | 10 |
 | Act 6 | Self-power nⁿ | 9 |
-| Act 7 | Superfactorial sf(n) = 1!×2!×…×n! | 8 |
-| Act 8 | Hyperfactorial H(n) = 1¹×2²×…×nⁿ | 7 |
-| Boss reward from act 6 | Tetration 3↑↑n | 3 |
+| Act 7 | Superfactorial sf(n) = 1!×2!×…×n! | 7 |
+| Act 8 | Hyperfactorial H(n) = 1¹×2²×…×nⁿ | 6 |
+| Boss reward from act 8 | Tetration 3↑↑n | 3 |
+
+Input caps are set so that the strongest single card in each act is roughly a few dozen times weaker than that act's floor-1 monster HP.
 
 Perk offers never suggest a transformation that lowers a card's value, and the same kind of perk never appears twice in one offer.
 
