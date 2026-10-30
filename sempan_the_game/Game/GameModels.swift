@@ -88,7 +88,7 @@ enum Enh: String, Codable, CaseIterable {
         case .luck: "수식에 쓰면 25% 확률로 최종 결과 ×5"
         case .amp: "오른쪽 수를 세 배로 더해요"
         case .stack: "보너스를 함께 더하고, 쓸 때마다 보너스가 \(Int(CFG.stackStep))×물가만큼 영구히 커져요"
-        case .flip: "오른쪽 수가 바로 앞 숫자보다 크면 결과를 절댓값으로 바꾸고 ×4"
+        case .flip: "빼서 음수가 되면 빼는 대신 두 수를 더하고 ×4"
         case .exact: "나누어떨어지면 나누는 대신 두 수를 곱하고 ×2"
         }
     }
@@ -117,6 +117,11 @@ enum Enh: String, Codable, CaseIterable {
     var isOpPerk: Bool { op != nil }
 
     static let opPerks: [Enh] = [.amp, .stack, .flip, .exact]
+
+    /// 정확 강화가 발동하는 나눗셈 (0은 나눠도 0이라 빼요)
+    static func divides(_ a: Double, _ b: Double) -> Bool {
+        a != 0 && b != 0 && abs(a.truncatingRemainder(dividingBy: b)) < 1e-9
+    }
 }
 
 /// 숫자 변신 강화. 막마다 하나씩 해금. cap은 변신에 넣는 값의 상한
@@ -195,9 +200,12 @@ struct Card: Codable, Identifiable, Equatable {
     static func number(_ id: Int, _ v: Int) -> Card { Card(id: id, kind: .num, v: v) }
     static func symbol(_ id: Int, _ op: Op) -> Card { Card(id: id, kind: .op, op: op) }
 
+    /// 변신에 실제로 들어가는 n (상한에서 멈춰요)
+    var trInput: Int { tr.map { min(v, $0.cap) } ?? v }
+
     /// 실제 계산 값 (변신 적용)
     var numVal: Double {
-        if let tr { return tr.apply(min(v, tr.cap)) }
+        if let tr { return tr.apply(trInput) }
         return Double(v)
     }
 
@@ -205,7 +213,7 @@ struct Card: Codable, Identifiable, Equatable {
 
     var faceText: String {
         if kind == .op { return op?.symbol ?? "" }
-        if let tr { return tr.text(String(v)) }
+        if let tr { return tr.text(String(trInput)) }
         return String(v)
     }
 
@@ -307,6 +315,8 @@ struct FightState: Codable {
     var handCards: [HandCard] = []
     var sel: [Int] = []
     var log: [LogLine] = []
+    /// 계산 결과는 저장됐지만 승패 처리가 아직이에요 (옛 저장과 호환되게 옵셔널)
+    var resolving: Bool?
 }
 
 struct GoldBreakdown: Codable {

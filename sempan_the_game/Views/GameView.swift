@@ -79,6 +79,8 @@ struct GameView: View {
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
+            // 계산 연출 중에 나가면 끝나지 않은 작업이 슬롯을 덮어쓸 수 있어 막아요
+            .disabled(session.busy && run.over == nil)
             .accessibilityLabel("메인 화면으로 (자동 저장됨)")
             Text("셈판").font(.hand(34)).foregroundStyle(Theme.ink)
             Spacer(minLength: 4)

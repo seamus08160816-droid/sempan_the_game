@@ -61,7 +61,7 @@ struct FightView: View {
     // MARK: 상태
 
     private func status(_ f: FightState, node: MapNode) -> some View {
-        let left = max(0, f.hpMax - f.score)
+        let left = max(0, f.hpMax - (f.score - session.hiddenDamage))
         let title = HStack(alignment: .firstTextBaseline) {
             Text(node.name).font(.hand(26)).foregroundStyle(Theme.ink)
             if node.type != .mob {
@@ -406,6 +406,7 @@ struct FanHand: View {
     var body: some View {
         let cards = visible
         let poses = layout(cards)
+        let halo = session.exactDivisorIDs
         let freshOrder = cards.filter { session.freshIDs.contains($0.id) }.map(\.id)
         ZStack(alignment: .topLeading) {
             if cards.isEmpty {
@@ -421,6 +422,7 @@ struct FanHand: View {
                     // 그림자를 카드 안의 글자·배지마다 따로 그리지 않고 카드 한 장에 한 번만 그려요
                     .compositingGroup()
                     .shadow(color: .black.opacity(0.1), radius: 7, y: 6)
+                    .modifier(DivisorHalo(active: halo.contains(c.id)))
                     .matchedGeometryEffect(id: c.id, in: cardSpace)
                     .modifier(DealEffect(fresh: session.freshIDs.contains(c.id), order: freshOrder.firstIndex(of: c.id) ?? 0))
                     .scaleEffect(p.scale, anchor: UnitPoint(x: 0.5, y: 0.7))
@@ -524,6 +526,32 @@ struct DealEffect: ViewModifier {
                     shown = true
                 }
             }
+    }
+}
+
+/// 정확 ÷ 뒤에 놓으면 나누어떨어지는 카드를 노란 후광으로 알려줘요
+struct DivisorHalo: ViewModifier {
+    let active: Bool
+    @State private var pulse = false
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                if active {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Theme.hl)
+                        .padding(-5)
+                        .blur(radius: pulse ? 9 : 5)
+                        .opacity(pulse ? 0.95 : 0.6)
+                        .transition(.opacity)
+                        .onAppear {
+                            withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) { pulse = true }
+                        }
+                        .onDisappear { pulse = false }
+                }
+            }
+            .animation(.easeOut(duration: 0.2), value: active)
+            .accessibilityHint(active ? "정확 나눗셈이 발동해요" : "")
     }
 }
 

@@ -55,12 +55,16 @@ final class GameSession {
     var toasts: [Toast] = []
     /// 방금 뽑힌 카드 (등장 애니메이션용)
     var freshIDs: Set<Int> = []
+    /// 이미 저장했지만 계산 연출이 끝날 때까지 체력 막대에 숨겨 두는 피해
+    var hiddenDamage: Double = 0
 
     init(slot: Int, store: SaveStore) {
         self.slot = slot
         self.store = store
         if let saved = store.profile(slot).run {
             run = saved
+            // 계산 연출 도중에 앱이 꺼졌다면 저장된 결과로 승패를 마저 정해요
+            if run.fight?.resolving == true && run.reward == nil { finish(settle()) }
         } else {
             run = RunState()
             newGame()
@@ -298,9 +302,10 @@ final class GameSession {
         return (true, "")
     }
 
-    func evaluate(_ cs: [Card], roll: Bool) -> EvalResult {
-        var res = EvalResult()
-        guard let first = cs.first else { return res }
+    /// 강화 효과를 빼고 왼쪽부터 계산한 값과 단계별 기록
+    private func chain(_ cs: [Card]) -> (val: Double, steps: [(text: String, note: String)]) {
+        guard let first = cs.first else { return (0, []) }
+        var steps: [(text: String, note: String)] = []
         var val = first.numVal
         var i = 1
         while i + 1 < cs.count {
@@ -312,20 +317,28 @@ final class GameSession {
                 if o.enh.contains(.amp) { r = a + b * 3; note = "증폭: 오른쪽 ×3" } else { r = a + b }
                 if o.enh.contains(.stack) { r += o.bonus; note = "적립 +\(Fmt.n(o.bonus))" }
             case .sub:
-                // 역전은 오른쪽 수가 바로 앞 숫자 카드보다 클 때만 발동해요
-                if o.enh.contains(.flip) && b > cs[i - 1].numVal { r = abs(a - b) * 4; note = "역전 ×4" } else { r = a - b }
+                // 역전은 빼서 음수가 될 때 발동해서, 빼는 대신 두 수를 더하고 ×4 해요
+                if o.enh.contains(.flip) && a - b < 0 { r = (a + b) * 4; note = "역전: 더하고 ×4" } else { r = a - b }
             case .mul:
                 r = a * b
             case .div:
                 if b == 0 { r = 0 }
-                else if o.enh.contains(.exact) && abs(a.truncatingRemainder(dividingBy: b)) < 1e-9 { r = a * b * 2; note = "정확: 곱하고 ×2" }
+                else if o.enh.contains(.exact) && Enh.divides(a, b) { r = a * b * 2; note = "정확: 곱하고 ×2" }
                 else { r = a / b }
             }
             val = r
             let shown = o.enh.contains(.amp) ? "\(Fmt.n(a)) + \(Fmt.n(b))×3" : "\(Fmt.n(a)) \(o.op?.symbol ?? "") \(Fmt.n(b))"
-            res.steps.append(("\(shown) = \(Fmt.n(r))", note))
+            steps.append(("\(shown) = \(Fmt.n(r))", note))
             i += 2
         }
+        return (val, steps)
+    }
+
+    func evaluate(_ cs: [Card], roll: Bool) -> EvalResult {
+        var res = EvalResult()
+        guard !cs.isEmpty else { return res }
+        var (val, steps) = chain(cs)
+        res.steps = steps
         let fire = run.fireBonus
         for c in cs where c.enh.contains(.fire) {
             val += fire
@@ -349,6 +362,16 @@ final class GameSession {
         }
         res.final = max(0, val.rounded(.down))
         return res
+    }
+
+    /// 수식이 정확 ÷ 카드로 끝날 때, 그 뒤에 놓으면 나누어떨어지는 손패 숫자 카드들 (후광 표시용)
+    var exactDivisorIDs: Set<Int> {
+        let sel = selectedCards
+        guard let last = sel.last, last.op == .div, last.enh.contains(.exact), let f = run.fight else { return [] }
+        let a = chain(Array(sel.dropLast())).val
+        let ids = f.handCards.filter { !$0.out }.compactMap { run.card($0.cardID) }
+            .filter { $0.kind == .num && Enh.divides(a, $0.numVal) }.map(\.id)
+        return Set(ids)
     }
 
     func select(_ id: Int) {
@@ -379,7 +402,7 @@ final class GameSession {
         busy = true
         tossing = true
         await wait(400)
-        guard var f = run.fight else { return }
+        guard var f = run.fight else { busy = false; tossing = false; return }
         for c in selectedCards { f.toPile(c) }
         f.sel = []
         f.discLeft -= 1
@@ -405,7 +428,7 @@ final class GameSession {
 
     func play() async {
         let cs = selectedCards
-        guard !busy, validity(cs).ok, var f = run.fight, f.playsLeft > 0, let node = fightNode else { return }
+        guard !busy, validity(cs).ok, var f = run.fight, f.playsLeft > 0 else { return }
         busy = true
         f.sel = []
         f.playsLeft -= 1
@@ -416,13 +439,23 @@ final class GameSession {
         for c in cs where c.enh.contains(.stack) {
             if let di = run.deck.firstIndex(where: { $0.id == c.id }) { run.deck[di].bonus += step }
         }
-        f.log = []
+        // 행운 결과를 연출 전에 먼저 저장해서, 앱을 껐다 켜도 다시 굴릴 수 없게 해요
+        f.score += res.final
+        f.resolving = true
+        f.log = [LogLine(text: cs.map(\.faceText).joined(separator: " "), style: .expr)]
         run.fight = f
+        run.bestPlay = max(run.bestPlay, res.final)
+        hiddenDamage = res.final
         freshIDs = []
         previewOverride = nil
         finalPop = false
+        save()
+        let luckHit = res.luckHit
+        updateProfile { p in
+            p.stats.maxHit = max(p.stats.maxHit, res.final)
+            if luckHit { p.stats.luckProcs += 1 }
+        }
 
-        log(cs.map(\.faceText).joined(separator: " "), .expr)
         for st in res.steps {
             await wait(380)
             log(st.text, .step, note: st.note)
@@ -446,53 +479,70 @@ final class GameSession {
             await wait(650 / frames)
         }
         finalPop = true
-        guard var f2 = run.fight else { return }
-        if res.final >= f2.hpMax * 0.4 { shakeCount += 1 }
-        f2.score += res.final
-        run.bestPlay = max(run.bestPlay, res.final)
-        run.fight = f2
-        let luckHit = res.luckHit
-        updateProfile { p in
-            p.stats.maxHit = max(p.stats.maxHit, res.final)
-            if luckHit { p.stats.luckProcs += 1 }
+        hiddenDamage = 0
+        if res.final >= f.hpMax * 0.4 { shakeCount += 1 }
+        let outcome = settle()
+        switch outcome {
+        case .win:
+            showStamp = true
+            await wait(1200)
+            showStamp = false
+        case .lose:
+            await wait(700)
+        case .next:
+            break
         }
+        finish(outcome)
+    }
 
-        if f2.score >= f2.hpMax {
-            let over = f2.score - f2.hpMax
+    private enum Outcome {
+        case win(rewards: Int), lose(reason: String), next
+    }
+
+    /// 저장된 계산 결과로 승패를 정하고 골드와 기록을 반영해요
+    private func settle() -> Outcome {
+        guard var f = run.fight, let node = fightNode else { return .next }
+        f.resolving = nil
+        run.fight = f
+        if f.score >= f.hpMax {
+            let over = f.score - f.hpMax
             let rate = run.leftoverRate
             let g1 = (CFG.killGold * run.econ).rounded()
-            let g2 = RunState.overkillGold(over, f2.hpMax, node.type)
-            let g3 = Double(f2.discLeft) * rate.disc
-            let g4 = Double(f2.playsLeft) * rate.play
+            let g2 = RunState.overkillGold(over, f.hpMax, node.type)
+            let g3 = Double(f.discLeft) * rate.disc
+            let g4 = Double(f.playsLeft) * rate.play
             let gain = g1 + g2 + g3 + g4
             run.gold += gain
             run.goldTotal += gain
             run.kills += 1
-            run.lastGold = GoldBreakdown(g1: g1, g2: g2, g3: g3, g4: g4, gain: gain, over: over, hp: f2.hpMax,
-                                         disc: f2.discLeft, plays: f2.playsLeft, ratePlay: rate.play, rateDisc: rate.disc, type: node.type)
-            let oneShot = f2.playsLeft == run.plays - 1
+            run.lastGold = GoldBreakdown(g1: g1, g2: g2, g3: g3, g4: g4, gain: gain, over: over, hp: f.hpMax,
+                                         disc: f.discLeft, plays: f.playsLeft, ratePlay: rate.play, rateDisc: rate.disc, type: node.type)
+            let oneShot = f.playsLeft == run.plays - 1
             let gold = run.gold
             updateProfile { p in
                 p.stats.kills += 1
                 if node.type == .elite { p.stats.eliteKills += 1 }
                 if node.type == .boss { p.stats.bossKills += 1 }
                 if oneShot { p.stats.oneShots += 1 }
-                if over >= f2.hpMax * 2 { p.stats.bigOverkills += 1 }
+                if over >= f.hpMax * 2 { p.stats.bigOverkills += 1 }
                 p.stats.maxGold = max(p.stats.maxGold, gold)
             }
             log("처치 \(Fmt.n(g1)) + 초과 피해 \(Fmt.n(g2)) + 남은 계산 \(Fmt.n(g4)) + 남은 버리기 \(Fmt.n(g3)) = 골드 +\(Fmt.n(gain))", .fxGold)
-            showStamp = true
-            await wait(1200)
-            showStamp = false
-            busy = false
-            openReward(count: node.type == .elite ? 2 : 1)
-        } else if f2.playsLeft == 0 {
-            await wait(700)
-            busy = false
-            gameOver("\(node.name)의 체력이 \(Fmt.n(f2.hpMax - f2.score)) 남았어요")
-        } else {
+            return .win(rewards: node.type == .elite ? 2 : 1)
+        }
+        if f.playsLeft == 0 { return .lose(reason: "\(node.name)의 체력이 \(Fmt.n(f.hpMax - f.score)) 남았어요") }
+        return .next
+    }
+
+    private func finish(_ outcome: Outcome) {
+        busy = false
+        switch outcome {
+        case .win(let count):
+            openReward(count: count)
+        case .lose(let reason):
+            gameOver(reason)
+        case .next:
             refill()
-            busy = false
             save()
             checkStuck()
         }
@@ -511,13 +561,14 @@ final class GameSession {
             return Perk(kind: .opPerk(e), cardID: c.id, title: "\(c.label)에 \(e.name)", desc: e.desc)
         } }
         let upNum: () -> Perk? = {
-            guard let c = deck.filter({ $0.kind == .num }).randomElement() else { return nil }
+            // 변신 상한에 닿은 카드는 n을 올려도 값이 그대로라 빼요
+            guard let c = deck.filter({ $0.kind == .num && $0.v < ($0.tr?.cap ?? .max) }).randomElement() else { return nil }
             return Perk(kind: .upNum, cardID: c.id, title: "숫자 \(c.faceText)의 n을 \(c.v + 3)으로", desc: "이 카드의 값이 영구히 3 올라요")
         }
         let trPerk: (Transform) -> () -> Perk? = { t in {
             guard let c = deck.filter({ $0.kind == .num && $0.trIndex < t.index }).randomElement() else { return nil }
             let after = t.apply(min(c.v, t.cap))
-            let title = c.tr != nil ? "\(c.faceText)을 \(t.text(String(c.v)))로" : "숫자 \(c.v)에 \(t.name)"
+            let title = c.tr != nil ? "\(c.faceText)을 \(t.text(String(min(c.v, t.cap))))로" : "숫자 \(c.v)에 \(t.name)"
             return Perk(kind: .transform(t), cardID: c.id, title: title, desc: "변신하면 이 카드의 계산 값이 \(Fmt.n(after))이 돼요")
         } }
         let hand = run.hand, plays = run.plays, discards = run.discards

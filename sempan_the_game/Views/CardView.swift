@@ -65,13 +65,13 @@ struct CardView: View {
         } else if let tr = card.tr {
             switch tr {
             case .sq:
-                Text("\(card.v)\(Text("2").font(small).baselineOffset(fontSize * 0.4))")
+                Text("\(card.trInput)\(Text("2").font(small).baselineOffset(fontSize * 0.4))")
             case .pow2:
-                Text("\(Text("2").font(small))\(Text("\(card.v)").font(small).baselineOffset(fontSize * 0.4))")
+                Text("\(Text("2").font(small))\(Text("\(card.trInput)").font(small).baselineOffset(fontSize * 0.4))")
             case .exp:
-                Text("\(Text("e").font(small))\(Text("\(card.v)").font(small).baselineOffset(fontSize * 0.4))")
+                Text("\(Text("e").font(small))\(Text("\(card.trInput)").font(small).baselineOffset(fontSize * 0.4))")
             case .fact:
-                Text("\(card.v)\(Text("!").font(small))")
+                Text("\(card.trInput)\(Text("!").font(small))")
             }
         } else {
             Text("\(card.v)")
