@@ -48,6 +48,10 @@ final class GameSession {
     var run: RunState
     var busy = false
     var shakeCount = 0
+    /// 흔들림 세기 (1~4, 때리는 소리 단계와 같아요)
+    var shakeLevel = 2
+    /// 보스 등장 화면에 띄울 보스
+    var bossIntro: MapNode?
     var showStamp = false
     var tossing = false
     var finalPop = false
@@ -82,6 +86,7 @@ final class GameSession {
             unlocked = p.evaluateAchievements()
         }
         for a in unlocked { pushToast(Toast(icon: a.icon, title: "업적 달성!", subtitle: a.title)) }
+        if !unlocked.isEmpty { Sound.shared.play(.fanfare) }
     }
 
     /// 진행 중인 판을 슬롯에 저장해요
@@ -101,6 +106,7 @@ final class GameSession {
             for c in cards { newKeys += p.collect(c) }
         }
         guard !silent else { return }
+        if !newKeys.isEmpty { Sound.shared.play(.chime, volume: 0.8) }
         for key in newKeys {
             if let entry = CardCatalog.entries.first(where: { $0.key == key }) {
                 pushToast(Toast(icon: "🃏", title: "도감 등록", subtitle: entry.title))
@@ -222,6 +228,21 @@ final class GameSession {
 
     func enterNode(_ n: MapNode) {
         guard run.reachable(n), !busy else { return }
+        guard n.type == .boss else { enter(n); return }
+        // 보스 앞: 화면이 어두워지며 이름판이 꽂히고 무거운 종이 울려요
+        busy = true
+        bossIntro = n
+        Task {
+            await wait(350)
+            Sound.shared.play(.bell)
+            await wait(1900)
+            bossIntro = nil
+            busy = false
+            enter(n)
+        }
+    }
+
+    private func enter(_ n: MapNode) {
         run.curID = n.id
         run.visited.insert(n.id)
         run.floor = n.floor
@@ -383,6 +404,7 @@ final class GameSession {
         guard let i = f.handCards.firstIndex(where: { $0.cardID == id && !$0.out }) else { return }
         f.handCards[i].out = true
         f.sel.append(id)
+        Sound.shared.play(.place)
         run.fight = f
         freshIDs = []
         previewOverride = nil
@@ -392,6 +414,7 @@ final class GameSession {
         guard !busy, var f = run.fight, let i = f.sel.firstIndex(of: id) else { return }
         f.sel.remove(at: i)
         if let h = f.handCards.firstIndex(where: { $0.cardID == id }) { f.handCards[h].out = false }
+        Sound.shared.play(.place, rate: 0.8)
         run.fight = f
         freshIDs = []
         previewOverride = nil
@@ -401,6 +424,7 @@ final class GameSession {
         guard !busy, let f0 = run.fight, !f0.sel.isEmpty, f0.discLeft > 0 else { return }
         busy = true
         tossing = true
+        Sound.shared.play(.toss)
         await wait(400)
         guard var f = run.fight else { busy = false; tossing = false; return }
         for c in selectedCards { f.toPile(c) }
@@ -420,6 +444,11 @@ final class GameSession {
         if !hasNum && f.discLeft == 0 && f.playsLeft > 0 {
             gameOver("낼 수 있는 숫자 카드가 없고 버리기도 다 썼어요")
         }
+    }
+
+    private func shake(_ level: Int) {
+        shakeLevel = level
+        shakeCount += 1
     }
 
     private func log(_ text: String, _ style: LogStyle, note: String = "") {
@@ -459,11 +488,17 @@ final class GameSession {
         for st in res.steps {
             await wait(380)
             log(st.text, .step, note: st.note)
+            Sound.shared.play(.tick)
         }
         for fx in res.fx {
             await wait(450)
             log(fx.text, fx.style)
-            if fx.style != .miss { shakeCount += 1 }
+            if fx.style == .miss {
+                Sound.shared.play(.miss)
+            } else {
+                Sound.shared.play(fx.text.hasPrefix("행운") ? .luck : .sparkle)
+                shake(1)
+            }
         }
         await wait(350)
 
@@ -480,7 +515,10 @@ final class GameSession {
         }
         finalPop = true
         hiddenDamage = 0
-        if res.final >= f.hpMax * 0.4 { shakeCount += 1 }
+        // 때리는 순간: 피해가 클수록 더 높고 거친 소리와 더 큰 흔들림
+        let level = Sound.hitLevel(res.final, f.hpMax)
+        Sound.shared.play(SFX(rawValue: "hit\(level)") ?? .miss)
+        if level >= 2 { shake(level) }
         let outcome = settle()
         switch outcome {
         case .win:
@@ -606,6 +644,7 @@ final class GameSession {
 
     func choose(_ perk: Perk) {
         guard let reward = run.reward else { return }
+        Sound.shared.play(.coins)
         if let id = perk.cardID, let i = run.deck.firstIndex(where: { $0.id == id }) {
             switch perk.kind {
             case .upNum:

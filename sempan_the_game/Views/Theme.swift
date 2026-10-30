@@ -129,11 +129,16 @@ struct ChipButtonStyle: ButtonStyle {
 /// 흔들림 효과
 struct ShakeEffect: GeometryEffect {
     var animatableData: CGFloat
+    /// 흔들림 세기 1~4
+    var level = 2
 
     func effectValue(size: CGSize) -> ProjectionTransform {
         let t = animatableData - animatableData.rounded(.down)
-        let dx = sin(t * .pi * 6) * 5 * (1 - t)
-        return ProjectionTransform(CGAffineTransform(translationX: dx, y: 0))
+        let amp: CGFloat = [0, 2, 5, 9, 14][max(0, min(4, level))]
+        let dx = sin(t * .pi * 6) * amp * (1 - t)
+        let dy = level >= 3 ? sin(t * .pi * 8) * amp * 0.35 * (1 - t) : 0
+        let rot = level >= 3 ? sin(t * .pi * 6) * 0.012 * (1 - t) : 0
+        return ProjectionTransform(CGAffineTransform(translationX: dx, y: dy).rotated(by: rot))
     }
 }
 

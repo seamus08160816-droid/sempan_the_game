@@ -164,6 +164,7 @@ details p{margin:.4em 0}
 .ln.final.pop{animation:pop .45s cubic-bezier(.2,1.6,.4,1) forwards}
 .stamp{position:absolute; right:14px; top:36%; font-size:2.5rem; color:var(--red); border:4px solid var(--red); border-radius:10px; padding:0 14px; transform:rotate(-12deg); pointer-events:none; animation:stamp .35s ease-out; background:var(--card)}
 .shake{animation:shake .4s}
+.shake1{animation:shake1 .3s} .shake2{animation:shake .4s} .shake3{animation:shake3 .5s} .shake4{animation:shake4 .7s}
 .actions{display:grid; grid-template-columns:5fr 8fr; gap:10px}
 .actions .btn{display:flex; align-items:center; justify-content:center; gap:8px; font-family:"Gaegu",cursive; font-weight:700; font-size:1.4rem; padding:9px 6px; white-space:nowrap}
 .tally{display:inline-flex; gap:4px}
@@ -241,6 +242,32 @@ details p{margin:.4em 0}
 .dialog .sheet{max-width:340px}
 .dialog .sheet h3{margin:0; font-size:1.05rem; color:var(--text)}
 
+/* 소리 버튼과 설정 */
+.iconbtn{flex:none; width:32px; height:32px; border:2px solid var(--ink); border-radius:50%; background:var(--card); color:var(--ink); display:grid; place-items:center; cursor:pointer; padding:0; font-size:14px; line-height:1}
+.iconbtn.off{opacity:.45}
+.menu .iconbtn{position:absolute; right:20px; top:20px}
+.menu{position:relative}
+.toggle{display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; padding:12px; background:var(--card); border:2px solid var(--edge); border-radius:10px; cursor:pointer; text-align:left}
+.toggle b{display:block; font-size:.95rem; color:var(--ink)}
+.toggle small{display:block; font-size:.75rem; color:var(--muted)}
+.switch{flex:none; width:46px; height:26px; border-radius:13px; background:var(--edge); position:relative; transition:background .2s}
+.switch::after{content:""; position:absolute; left:3px; top:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform .2s; box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.toggle.on .switch{background:var(--ink)}
+.toggle.on .switch::after{transform:translateX(20px)}
+@media (max-width:400px){ header{gap:6px} header .title{font-size:1.75rem} }
+
+/* 보스 등장 */
+.bossintro{position:fixed; inset:0; z-index:30; display:grid; place-items:center; overflow:hidden; animation:bi-fade 2.25s ease forwards; pointer-events:all}
+.bossintro::before{content:""; position:absolute; inset:0; background:#0d1430; opacity:.94}
+.bossintro .band{position:absolute; left:-10%; right:-10%; transform:skewY(-6deg)}
+.bossintro .band.a{top:34%; height:30%; background:#D3302A; animation:bi-left .35s cubic-bezier(.2,.9,.3,1) both}
+.bossintro .band.b{top:62%; height:3%; background:#F5E23B; animation:bi-right .35s .08s cubic-bezier(.2,.9,.3,1) both}
+.bossintro .q{position:relative; animation:shake4 .7s .62s}
+.bossintro .plate{text-align:center; color:#fff; animation:bi-slam .3s .35s cubic-bezier(.3,1.6,.5,1) both}
+.bossintro .plate .ic{display:block; font-size:60px; line-height:1.1}
+.bossintro .plate b{display:block; font-size:3.2rem; line-height:1.1; text-shadow:0 4px 0 rgba(0,0,0,.35)}
+.bossintro .plate small{display:block; margin-top:6px; font-size:.9rem; color:#F5E23B; letter-spacing:.12em}
+
 /* 알림 */
 .toasts{position:fixed; top:calc(4px + env(safe-area-inset-top,0px)); left:0; right:0; display:grid; justify-items:center; gap:6px; z-index:40; pointer-events:none; padding:0 16px}
 .toast{display:flex; align-items:center; gap:10px; width:100%; max-width:360px; padding:8px 14px; background:var(--card); border:2px solid var(--ink); border-radius:12px; box-shadow:0 3px 6px rgba(0,0,0,.15); animation:drop .35s cubic-bezier(.3,1.4,.5,1)}
@@ -271,6 +298,13 @@ details p{margin:.4em 0}
 @keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
 @keyframes stamp{from{transform:rotate(-12deg) scale(2.2); opacity:0}to{transform:rotate(-12deg) scale(1); opacity:1}}
 @keyframes shake{0%,100%{transform:none}20%{transform:translateX(-5px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+@keyframes shake1{0%,100%{transform:none}25%{transform:translateX(-2px)}50%{transform:translateX(2px)}75%{transform:translateX(-1px)}}
+@keyframes shake3{0%,100%{transform:none}15%{transform:translate(-9px,3px) rotate(-.6deg)}30%{transform:translate(8px,-3px) rotate(.6deg)}50%{transform:translate(-6px,2px)}70%{transform:translate(4px,-1px)}85%{transform:translateX(-2px)}}
+@keyframes shake4{0%,100%{transform:none}10%{transform:translate(-14px,5px) rotate(-1deg)}22%{transform:translate(13px,-6px) rotate(1deg)}36%{transform:translate(-11px,4px) rotate(-.7deg)}50%{transform:translate(9px,-3px)}65%{transform:translate(-6px,2px)}80%{transform:translate(3px,-1px)}}
+@keyframes bi-fade{0%{opacity:0}8%{opacity:1}86%{opacity:1}100%{opacity:0}}
+@keyframes bi-left{from{transform:translateX(-120%) skewY(-6deg)}}
+@keyframes bi-right{from{transform:translateX(120%) skewY(-6deg)}}
+@keyframes bi-slam{from{opacity:0; transform:scale(2.6)}}
 @keyframes deal{from{opacity:0; transform:translate(-40px,-280px) rotate(-25deg) scale(.7)}}
 @keyframes toss{to{opacity:0; transform:translate(40px,-90px) rotate(18deg) scale(.8)}}
 @keyframes halo{from{opacity:.6; filter:blur(5px)}to{opacity:.95; filter:blur(9px)}}
@@ -282,6 +316,7 @@ details p{margin:.4em 0}
 <div id="overlays"></div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
+<script>/*@SOUNDS@*/</script>
 <script>
 'use strict';
 // ===== 밸런스 조정용 값 (Swift 버전 CFG와 같아요) =====
@@ -513,6 +548,84 @@ function evaluateAchievements(p) {
   return out;
 }
 
+// ===== 소리 =====
+// 소리 파일은 web/build.py가 window.SOUND_DATA(base64 WAV)로 넣어요. 없으면 조용히 넘어가요.
+const Sound = (() => {
+  let ctx = null, sfxBus = null, musicBus = null, bgm = null, loading = null, lastSwish = 0;
+  const buffers = {};
+  const MUSIC_VOL = 0.32;
+  const pref = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : v === '1'; } catch (e) { return d; } };
+  const state = { music: pref('sempan-music', true), sfx: pref('sempan-sfx', true) };
+  const save = () => { try { localStorage.setItem('sempan-music', state.music ? '1' : '0'); localStorage.setItem('sempan-sfx', state.sfx ? '1' : '0'); } catch (e) {} };
+  const bytes = b64 => { const bin = atob(b64), a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a.buffer; };
+
+  // 브라우저는 사용자가 한 번 누른 뒤에야 소리를 내게 해줘요
+  function unlock() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC || !window.SOUND_DATA) return;
+    if (!ctx) {
+      ctx = new AC();
+      sfxBus = ctx.createGain(); sfxBus.connect(ctx.destination);
+      musicBus = ctx.createGain(); musicBus.gain.value = 0; musicBus.connect(ctx.destination);
+      loading = Promise.all(Object.entries(window.SOUND_DATA).map(([k, v]) =>
+        new Promise(res => ctx.decodeAudioData(bytes(v), b => { buffers[k] = b; res(); }, () => res()))))
+        .then(() => { if (state.music) startMusic(); });
+    }
+    if (ctx.state === 'suspended' && !document.hidden) ctx.resume();
+  }
+
+  function play(name, opts = {}) {
+    if (!ctx || !state.sfx || !buffers[name] || ctx.state !== 'running') return;
+    const src = ctx.createBufferSource();
+    src.buffer = buffers[name];
+    src.playbackRate.value = opts.rate || 1;
+    const g = ctx.createGain();
+    g.gain.value = opts.vol ?? 1;
+    src.connect(g); g.connect(sfxBus);
+    src.start();
+  }
+
+  function startMusic() {
+    if (!ctx || bgm || !buffers.bgm) return;
+    bgm = ctx.createBufferSource();
+    bgm.buffer = buffers.bgm;
+    bgm.loop = true;
+    bgm.connect(musicBus);
+    musicBus.gain.cancelScheduledValues(ctx.currentTime);
+    musicBus.gain.setValueAtTime(0, ctx.currentTime);
+    musicBus.gain.linearRampToValueAtTime(MUSIC_VOL, ctx.currentTime + 1.5);
+    bgm.start();
+  }
+  function stopMusic() {
+    if (!bgm) return;
+    const old = bgm; bgm = null;
+    musicBus.gain.cancelScheduledValues(ctx.currentTime);
+    musicBus.gain.setValueAtTime(musicBus.gain.value, ctx.currentTime);
+    musicBus.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.4);
+    setTimeout(() => { try { old.stop(); old.disconnect(); } catch (e) {} }, 450);
+  }
+
+  return {
+    state, unlock, play,
+    get ready() { return !!ctx && Object.keys(buffers).length > 0; },
+    // 카드를 훑을 때: 너무 자주 겹치지 않게 하고 음높이를 조금씩 바꿔요
+    swish() { const now = performance.now(); if (now - lastSwish < 40) return; lastSwish = now; play('swish', { rate: 0.85 + Math.random() * 0.35, vol: 0.8 }); },
+    // 피해 크기(적 체력 대비)에 따라 1~4단계. 화면 흔들림도 같은 단계를 써요
+    hitLevel: (dmg, hp) => dmg <= 0 ? 0 : dmg < hp * 0.15 ? 1 : dmg < hp * 0.4 ? 2 : dmg < hp ? 3 : 4,
+    toggle(kind) {
+      state[kind] = !state[kind]; save();
+      if (kind === 'music') { if (state.music) { unlock(); if (loading) loading.then(startMusic); } else stopMusic(); }
+    },
+    pause() { if (ctx && ctx.state === 'running') ctx.suspend(); },
+    resume() { if (ctx && ctx.state === 'suspended') ctx.resume(); }
+  };
+})();
+['pointerdown', 'keydown', 'click'].forEach(t => document.addEventListener(t, Sound.unlock, true));
+document.addEventListener('visibilitychange', () => document.hidden ? Sound.pause() : Sound.resume());
+// 안드로이드 앱이 백그라운드로 갈 때 불러요
+window.sempanPause = () => Sound.pause();
+window.sempanResume = () => Sound.resume();
+
 // ===== 게임 진행 =====
 let G = null; // 지금 열린 게임 (없으면 메인 화면)
 const ui = { sheet: null, confirm: null, info: '', selectedSlot: 0 };
@@ -546,6 +659,7 @@ class Game {
     let unlocked = [];
     Store.update(this.slot, p => { change(p); unlocked = evaluateAchievements(p); });
     unlocked.forEach(a => pushToast(a.icon, '업적 달성!', a.title));
+    if (unlocked.length) Sound.play('fanfare');
   }
 
   // 진행 중인 판을 슬롯에 저장해요
@@ -568,6 +682,7 @@ class Game {
     });
     if (silent) return;
     fresh.forEach(k => { const e = CATALOG.find(x => x.key === k); if (e) pushToast('🃏', '도감 등록', e.title); });
+    if (fresh.length) Sound.play('chime', { vol: 0.8 });
   }
 
   // ----- 시작과 끝 -----
@@ -652,8 +767,19 @@ class Game {
   }
 
   // ----- 지도 -----
-  enterNode(n) {
+  async enterNode(n) {
     if (!R.reachable(this.run, n) || this.busy) return;
+    if (n.type === 'boss') {
+      // 보스 앞: 화면이 어두워지며 이름판이 꽂히고 무거운 종이 울려요
+      this.busy = true;
+      this.bossIntro = n;
+      paint();
+      await wait(350);
+      Sound.play('bell');
+      await wait(1900);
+      this.bossIntro = null;
+      this.busy = false;
+    }
     this.run.curID = n.id;
     this.run.visited.push(n.id);
     this.run.floor = n.floor;
@@ -830,6 +956,7 @@ class Game {
     if (this.busy || !f || !f.sel.length || f.discLeft <= 0) return;
     this.busy = true;
     this.tossing = true;
+    Sound.play('toss');
     paint();
     await wait(400);
     this.selectedCards.forEach(c => this.toPile(f, c));
@@ -878,8 +1005,12 @@ class Game {
     });
     paint();
 
-    for (const st of res.steps) { await wait(380); this.log(st.text, 'step', st.note); paint(); }
-    for (const fx of res.fx) { await wait(450); this.log(fx.text, fx.style); paint(); if (fx.style !== 'miss') shake(); }
+    for (const st of res.steps) { await wait(380); this.log(st.text, 'step', st.note); paint(); Sound.play('tick'); }
+    for (const fx of res.fx) {
+      await wait(450); this.log(fx.text, fx.style); paint();
+      if (fx.style === 'miss') Sound.play('miss');
+      else { Sound.play(fx.text.startsWith('행운') ? 'luck' : 'sparkle'); shake(1); }
+    }
     await wait(350);
 
     // 최종 결과 숫자를 세어 올려요
@@ -894,7 +1025,10 @@ class Game {
     }
     this.finalPop = true;
     this.hiddenDamage = 0;
-    if (res.final >= f.hpMax * 0.4) shake();
+    // 때리는 순간: 피해가 클수록 더 높고 거친 소리와 더 큰 흔들림
+    const level = Sound.hitLevel(res.final, f.hpMax);
+    Sound.play(level ? `hit${level}` : 'miss');
+    if (level >= 2) shake(level);
     const outcome = this.settle();
     paint();
     if (outcome.win) {
@@ -1007,6 +1141,7 @@ class Game {
   choose(perk) {
     const run = this.run, reward = run.reward;
     if (!reward) return;
+    Sound.play('coins');
     const c = perk.cardID != null ? R.card(run, perk.cardID) : null;
     if (c) {
       if (perk.kind === 'upNum') { c.v += 3; c.up++; }
@@ -1169,7 +1304,7 @@ function paintMenu(app) {
       ${s ? `<button class="del" data-act="delSlot" data-i="${i}" aria-label="슬롯 ${i + 1} 지우기">🗑</button>` : ''}</div>`;
   }).join('');
   const hasRun = !!(Store.slots[sel] && Store.slots[sel].run);
-  app.innerHTML = `<div class="wrap menu">
+  app.innerHTML = `<div class="wrap menu"><button class="iconbtn" data-act="sheet" data-s="sound" aria-label="소리 설정"></button>
     <div class="logo"><div class="big h">셈판</div>
       <p>숫자와 기호로 수식을 만들어 몹을 쓰러뜨리는 카드 로그라이크</p>
       <div class="eq" aria-hidden="true">${cardHTML(numberCard(-1, 7))}${cardHTML(symbolCard(-2, '*'))}${cardHTML(numberCard(-3, 3))}<span class="h">= 21</span></div>
@@ -1185,6 +1320,7 @@ function paintMenu(app) {
     </div>
     <p class="sect" style="text-align:center; font-weight:400">v${VERSION}</p>
   </div>`;
+  paintSoundButton(app.querySelector('.iconbtn'));
 }
 
 // ----- 게임 화면 -----
@@ -1196,6 +1332,7 @@ function paintGame(app) {
       <button class="back" data-act="exit" aria-label="메인 화면으로 (자동 저장됨)">‹</button>
       <span class="title h">셈판</span><span class="sp"></span>
       <span class="where"></span><span class="gold">골드 <b class="hlmark"></b></span>
+      <button class="iconbtn" data-act="sheet" data-s="sound" aria-label="소리 설정"></button>
       <button class="chip" data-act="sheet" data-s="deck">덱 보기</button></header>
       <div id="screen"></div></div>`;
   }
@@ -1203,6 +1340,7 @@ function paintGame(app) {
   wrap.classList.toggle('fightwide', wideFight);
   $('header .where').textContent = R.whereText(run);
   $('header .gold b').textContent = fmt(run.gold);
+  paintSoundButton($('header .iconbtn'));
   // 계산 연출 중에 나가면 끝나지 않은 작업이 슬롯을 덮어쓸 수 있어 막아요
   $('header .back').disabled = G.busy && !run.over;
   const screen = $('#screen');
@@ -1361,9 +1499,9 @@ function tally(total, left) {
   return s + '</span>';
 }
 
-function shake() {
+function shake(level = 2) {
   const b = document.querySelector('.board'); if (!b) return;
-  b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');
+  b.classList.remove('shake1', 'shake2', 'shake3', 'shake4'); void b.offsetWidth; b.classList.add(`shake${level}`);
 }
 
 // ----- 부채꼴 손패 -----
@@ -1450,6 +1588,7 @@ function fanCardAt(x) {
 function setFocus(id) {
   if (id === fan.focus) return;
   fan.focus = id;
+  if (id != null) Sound.swish();
   if (id != null && fan.touching && navigator.vibrate) { try { navigator.vibrate(4); } catch (e) {} }
   const box = document.querySelector('.hand'); if (box) paintHand(box);
 }
@@ -1517,12 +1656,14 @@ function flyFrom(id, from, toSlot) {
 }
 function selectCard(id) {
   const from = cardRect(id);
+  if (!G.busy && G.run.fight && G.run.fight.sel.length < CFG.maxLen) Sound.play('place');
   G.select(id);
   paint();
   flyFrom(id, from, true);
 }
 function unselectCard(id) {
   const from = cardRect(id);
+  if (!G.busy) Sound.play('place', { rate: 0.8 });
   G.unselect(id);
   paint();
   flyFrom(id, from, false);
@@ -1553,6 +1694,26 @@ function paintShop(screen) {
     <button class="btn" data-act="leaveShop">상점 나가기</button></div>`;
 }
 
+function paintSoundButton(btn) {
+  const on = Sound.state.music || Sound.state.sfx;
+  btn.textContent = on ? '🔊' : '🔇';
+  btn.classList.toggle('off', !on);
+}
+
+function soundHTML() {
+  const row = (kind, title, desc) => `<button class="toggle${Sound.state[kind] ? ' on' : ''}" data-act="toggleSound" data-k="${kind}" role="switch" aria-checked="${Sound.state[kind]}">
+    <span><b>${title}</b><small>${desc}</small></span><span class="switch"></span></button>`;
+  return `<div class="overlay" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true">${sheetHead('소리', '이 기기에서만 기억해요.')}
+    ${row('music', '배경음', '잔잔한 모눈종이 음악')}
+    ${row('sfx', '효과음', '카드, 계산, 동전, 종소리')}</div></div>`;
+}
+
+function bossIntroHTML(n) {
+  return `<div class="bossintro" aria-live="assertive"><div class="band a"></div><div class="band b"></div>
+    <div class="q"><div class="plate"><span class="ic">👑</span><b class="h">${n.name}</b>
+    <small>${G.run.act}막 보스 · 체력 ${fmt(R.hpFor(G.run, n.floor, 'boss'))}</small></div></div></div>`;
+}
+
 // ----- 시트와 오버레이 -----
 function sheetHead(title, sub, closeAct = 'closeSheet') {
   return `<div class="sheet-head"><h2 class="h">${title}</h2><button class="chip" data-act="${closeAct}">닫기</button></div>${sub ? `<p class="sub">${sub}</p>` : ''}`;
@@ -1563,6 +1724,8 @@ function paintOverlays() {
   let html = '';
   if (G && G.run.reward) html += rewardHTML();
   if (G && G.run.over) html += gameOverHTML();
+  if (G && G.bossIntro) html += bossIntroHTML(G.bossIntro);
+  if (ui.sheet === 'sound') html += soundHTML();
   if (ui.sheet === 'deck' && G) html += deckHTML();
   if (ui.sheet === 'ach') html += achievementsHTML();
   if (ui.sheet === 'col') html += collectionHTML();
@@ -1726,7 +1889,8 @@ const actions = {
   exit: () => exitGame(),
   toMenu: () => exitGame(),
   restart: () => { G.newGame(); paint(); },
-  node: el => { const n = R.node(G.run, el.dataset.id); if (n) { G.enterNode(n); paint(); } },
+  node: el => { const n = R.node(G.run, el.dataset.id); if (n) G.enterNode(n).then(paint); },
+  toggleSound: el => { Sound.toggle(el.dataset.k); paint(); },
   unselect: el => unselectCard(+el.dataset.id),
   play: () => G.play(),
   discard: () => G.discard(),

@@ -5,6 +5,7 @@ struct GameView: View {
     let session: GameSession
     let onExit: () -> Void
     @State private var showDeck = false
+    @State private var showSound = false
     @Environment(\.verticalSizeClass) private var vSize
 
     var body: some View {
@@ -43,11 +44,17 @@ struct GameView: View {
             if let over = run.over {
                 GameOverOverlay(session: session, info: over, onExit: onExit)
             }
+            if let boss = session.bossIntro {
+                BossIntroOverlay(node: boss, act: run.act, hp: run.hpFor(boss.floor, .boss))
+                    .zIndex(5)
+            }
             ToastStack(toasts: session.toasts)
         }
         .animation(.easeOut(duration: 0.3), value: run.reward?.idx)
         .animation(.easeOut(duration: 0.3), value: run.over == nil)
+        .animation(.easeInOut(duration: 0.25), value: session.bossIntro?.id)
         .sheet(isPresented: $showDeck) { DeckSheet(session: session) }
+        .sheet(isPresented: $showSound) { SoundSettingsSheet() }
     }
 
     /// 지도에서는 갈 수 있는 칸으로, 그 외에는 맨 위로 스크롤해요
@@ -82,13 +89,14 @@ struct GameView: View {
             // 계산 연출 중에 나가면 끝나지 않은 작업이 슬롯을 덮어쓸 수 있어 막아요
             .disabled(session.busy && run.over == nil)
             .accessibilityLabel("메인 화면으로 (자동 저장됨)")
-            Text("셈판").font(.hand(34)).foregroundStyle(Theme.ink)
+            Text("셈판").font(.hand(30)).foregroundStyle(Theme.ink)
             Spacer(minLength: 4)
             Text(run.whereText).font(.footnote).foregroundStyle(Theme.muted)
             HStack(spacing: 3) {
                 Text("골드").font(.footnote).foregroundStyle(Theme.muted)
                 Text(Fmt.n(run.gold)).font(.hand(22)).foregroundStyle(Theme.text).modifier(Highlight())
             }
+            SoundButton { showSound = true }
             Button("덱 보기") { showDeck = true }.buttonStyle(ChipButtonStyle())
         }
         .lineLimit(1)

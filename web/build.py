@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""web/index.html에 Gaegu 글꼴을 필요한 글자만 잘라 넣어 dist/sempan.html(과 배포용 dist/index.html) 한 파일로 만들어요.
+"""web/index.html에 Gaegu 글꼴(필요한 글자만)과 효과음·배경음을 넣어 dist/sempan.html(과 배포용 dist/index.html) 한 파일로 만들어요.
 
 사용법: python3 web/build.py
 필요: pip install fonttools
 """
 import base64
 import io
+import json
 import pathlib
 
 from fontTools import subset
@@ -13,6 +14,7 @@ from fontTools.ttLib import TTFont
 
 ROOT = pathlib.Path(__file__).resolve().parent
 FONTS = ROOT.parent / "sempan_the_game" / "Fonts"
+SOUNDS = ROOT.parent / "sempan_the_game" / "Sounds"
 SRC = ROOT / "index.html"
 OUT = ROOT / "dist" / "sempan.html"
 
@@ -46,6 +48,9 @@ def main() -> None:
         faces.append(f"@font-face{{font-family:'Gaegu';font-weight:{weight};font-display:swap;"
                      f"src:url(data:font/woff;base64,{data}) format('woff')}}")
     out = html.replace("/*@FONTS@*/", "\n".join(faces), 1)
+    # 효과음과 배경음 (sound/gen.py가 만든 WAV)
+    sounds = {f.stem: base64.b64encode(f.read_bytes()).decode() for f in sorted(SOUNDS.glob("*.wav"))}
+    out = out.replace("/*@SOUNDS@*/", "window.SOUND_DATA=" + json.dumps(sounds) + ";", 1)
     OUT.parent.mkdir(exist_ok=True)
     OUT.write_text(out, encoding="utf-8")
     # 배포용: 같은 파일을 index.html로도 둬요 (Vercel 정적 배포)

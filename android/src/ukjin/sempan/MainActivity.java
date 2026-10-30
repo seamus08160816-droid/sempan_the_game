@@ -20,6 +20,8 @@ public class MainActivity extends Activity {
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(false);
         s.setTextZoom(100);
+        // 소리는 첫 터치 뒤에 켜져요 (웹과 같은 방식)
+        s.setMediaPlaybackRequiresUserGesture(true);
         web.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
         setContentView(web);
         web.loadUrl("file:///android_asset/index.html");
@@ -35,6 +37,8 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onPause() {
+        // 백그라운드에서는 배경음과 효과음을 멈춰요
+        web.evaluateJavascript("window.sempanPause && sempanPause()", null);
         web.onPause();
         super.onPause();
     }
@@ -43,6 +47,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         web.onResume();
+        web.evaluateJavascript("window.sempanResume && sempanResume()", null);
     }
 
     @Override

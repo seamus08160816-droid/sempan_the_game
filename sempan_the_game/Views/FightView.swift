@@ -157,8 +157,8 @@ struct FightView: View {
             }
         }
         .animation(.easeOut(duration: 0.35), value: session.showStamp)
-        .modifier(ShakeEffect(animatableData: CGFloat(session.shakeCount)))
-        .animation(.linear(duration: 0.4), value: session.shakeCount)
+        .modifier(ShakeEffect(animatableData: CGFloat(session.shakeCount), level: session.shakeLevel))
+        .animation(.linear(duration: [0.3, 0.3, 0.4, 0.5, 0.7][max(0, min(4, session.shakeLevel))]), value: session.shakeCount)
     }
 
     private func slots(_ sel: [Card]) -> some View {
@@ -451,6 +451,8 @@ struct FanHand: View {
             }
         }
         .sensoryFeedback(.selection, trigger: focusID) { _, new in new != nil }
+        // 카드 위를 훑을 때 스치는 소리
+        .onChange(of: focusID) { _, new in if new != nil { Sound.shared.swish() } }
         .padding(.top, 6)
     }
 

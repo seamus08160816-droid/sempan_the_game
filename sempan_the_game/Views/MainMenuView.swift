@@ -10,6 +10,7 @@ struct MainMenuView: View {
     @State private var confirmDelete: Int?
     @State private var showAchievements = false
     @State private var showCollection = false
+    @State private var showSound = false
 
     private var profile: SlotProfile { store.profile(selected) }
 
@@ -29,6 +30,10 @@ struct MainMenuView: View {
             }
             .scrollBounceBehavior(.basedOnSize)
         }
+        .overlay(alignment: .topTrailing) {
+            SoundButton { showSound = true }.padding(20)
+        }
+        .sheet(isPresented: $showSound) { SoundSettingsSheet() }
         .confirmationDialog("슬롯 \(selected + 1)에 진행 중인 게임이 있어요", isPresented: $confirmNewGame, titleVisibility: .visible) {
             Button("새 게임 시작 (진행 중인 판은 사라져요)", role: .destructive) { onStart(selected, true) }
             Button("취소", role: .cancel) {}
