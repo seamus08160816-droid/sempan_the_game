@@ -30,8 +30,8 @@
 | 행운 | 25% 확률로 최종 결과 ×5 |
 | 증폭 (+) | 오른쪽 수를 세 배로 더함 |
 | 적립 (+) | 보너스를 더하고, 쓸 때마다 보너스 증가 |
-| 역전 (−) | 절댓값으로 바꾸고 ×4 |
-| 정확 (÷) | 나누어떨어지면 곱하고 ×2 |
+| 역전 (−) | 빼서 음수가 되면 빼는 대신 두 수를 더하고 ×4 |
+| 정확 (÷) | 나누어떨어지면 나누는 대신 곱하고 ×2 (나누어떨어지는 손패 숫자는 후광으로 표시) |
 
 × 카드는 강력한 대신 강화할 수 없어요.
 
@@ -43,31 +43,62 @@
 | 4막 | 자연지수 eⁿ | 12 |
 | 5막 | 팩토리얼 n! | 10 |
 
-## 실행
+## 다운로드와 실행
 
-빌드 과정이 없는 단일 HTML 파일이에요.
+**바로 플레이: https://sempan.vercel.app** (진행상황은 브라우저에 저장돼요)
+
+[Releases](https://github.com/seamus08160816-droid/sempan_the_game/releases)에서 세 가지 버전을 받을 수 있어요. 모두 같은 규칙과 밸런스예요.
+
+| 파일 | 플랫폼 | 실행 방법 |
+|---|---|---|
+| `sempan-<버전>.html` | 웹 브라우저 | 파일을 브라우저로 열기 (인터넷 연결 없이도 동작) |
+| `sempan-<버전>.apk` | 안드로이드 7.0 이상 | 휴대폰에서 설치 (출처를 알 수 없는 앱 허용 필요) |
+| `sempan-xcode-<버전>.zip` | iOS · iPadOS · macOS · visionOS | 압축을 풀고 `sempan_the_game.xcodeproj`를 Xcode로 열어 실행 |
+
+## 직접 빌드하기
 
 ```bash
-git clone https://github.com/<사용자명>/sempan.git
-cd sempan
-open index.html   # 또는 브라우저로 직접 열기
+# iOS / macOS (Xcode)
+open sempan_the_game.xcodeproj
+
+# 웹: web/index.html에 Gaegu 글꼴을 넣어 web/dist/sempan.html 한 파일로 만들어요 (pip install fonttools)
+python3 web/build.py
+# 웹 배포 (Vercel): 빌드 후 web/dist를 올려요
+cd web/dist && npx vercel deploy --prod
+
+# 안드로이드: 웹 버전을 WebView로 감싼 APK (Android SDK build-tools 35, JDK 11+)
+android/build.sh 1.0.0-beta.1 1
 ```
+
+웹 버전과 안드로이드 버전은 같은 `web/index.html`을 써요. 게임 규칙을 바꿀 때는 Swift(`Game/`)와 웹(`web/index.html`)을 함께 고쳐야 해요.
 
 ## 밸런스 조정
 
-`index.html` 스크립트 맨 위의 `CFG` 객체와 `TR` 배열에서 대부분의 수치를 바꿀 수 있어요.
+대부분의 수치는 `sempan_the_game/Game/GameModels.swift` 맨 위의 `CFG`와 `Transform` 열거형에 있어요. 웹 버전은 `web/index.html` 스크립트 맨 위의 `CFG`와 `TR`이에요.
 
 | 항목 | 설명 |
 |---|---|
-| `baseHP`, `actGrowth` | 1층 체력과 막별 층당 체력 배율 |
+| `baseHP`, `actGrowth`, `growthAfter` | 1층 체력과 막별 층당 체력 배율 |
 | `econPow` | 보상·가격이 체력을 따라가는 정도 |
 | `goldA`, `goldK`, `goldCap` | 초과 피해 골드 곡선 |
 | `playGold`, `discGold` | 남은 계산·버리기 단가 |
 | `fireBase`, `firePow` | 불꽃 보너스 크기 |
-| `TR[].cap` | 변신별 입력 상한 |
+| `Transform.cap` | 변신별 입력 상한 |
+
+## 구조
+
+| 경로 | 내용 |
+|---|---|
+| `Game/GameModels.swift` | 밸런스 값, 카드·강화·변신, 지도, 체력·경제 공식 |
+| `Game/GameSession.swift` | 지도 생성, 전투·수식 계산, 특전, 상점 |
+| `Game/Progress.swift` | 저장 슬롯 3개, 업적, 카드 도감 |
+| `Views/` | 메인 메뉴, 지도, 전투(부채꼴 손패), 상점, 테마 |
+| `web/` | 웹 버전 (한 파일 HTML)과 글꼴 임베드 빌드 스크립트 |
+| `android/` | 웹 버전을 띄우는 안드로이드 WebView 앱과 빌드 스크립트 |
 
 ## 기술 스택
 
-- Vanilla JavaScript, HTML, CSS (외부 라이브러리 없음)
-- 최고 기록은 브라우저 localStorage에 저장
-- 라이트/다크 모드, 모바일 터치 지원
+- Swift, SwiftUI, Observation (외부 라이브러리 없음)
+- 웹: Vanilla JavaScript, HTML, CSS (외부 라이브러리 없음), 안드로이드: Java WebView
+- 진행상황은 슬롯별로 저장 (Apple: Application Support/Saves의 JSON, 웹·안드로이드: localStorage)
+- 라이트/다크 모드, 가로·세로 화면, 터치·마우스 지원
