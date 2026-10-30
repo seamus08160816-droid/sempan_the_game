@@ -221,6 +221,11 @@ details p{margin:.4em 0}
 .offer .tx small{display:block; color:var(--muted); font-size:.8rem; margin-top:2px}
 .rule{width:56px; height:56px; border:2px solid var(--red); border-radius:50%; display:grid; place-items:center; color:var(--red); font-size:1.05rem; transform:rotate(-8deg)}
 .rw{display:flex; flex-direction:column; gap:12px}
+.best{display:grid; gap:6px}
+.bestrow{display:flex; align-items:center; gap:4px; flex-wrap:wrap}
+.bestrow .bc{width:36px}
+.bestrow .bd{font-size:6px; padding:0 2px}
+.bestrow b{margin-left:6px; font-size:1.5rem; color:var(--red); white-space:nowrap}
 .stats{display:grid; grid-template-columns:auto 1fr; gap:6px 14px; margin:0; align-items:baseline}
 .stats dt{color:var(--muted); font-size:.9rem}
 .stats dd{margin:0; font-family:"Gaegu",cursive; font-weight:700; font-size:1.4rem; color:var(--ink); line-height:1.1}
@@ -288,7 +293,7 @@ details p{margin:.4em 0}
 .bossintro .plate small{display:block; margin-top:6px; font-size:.9rem; color:#F5E23B; letter-spacing:.12em}
 
 /* 알림 */
-.toasts{position:fixed; top:calc(4px + env(safe-area-inset-top,0px)); left:0; right:0; display:grid; justify-items:center; gap:6px; z-index:40; pointer-events:none; padding:0 16px}
+.toasts{position:fixed; bottom:calc(12px + env(safe-area-inset-bottom,0px)); left:0; right:0; display:grid; justify-items:center; gap:6px; z-index:40; pointer-events:none; padding:0 16px}
 .toast{display:flex; align-items:center; gap:10px; width:100%; max-width:360px; padding:8px 14px; background:var(--card); border:2px solid var(--ink); border-radius:12px; box-shadow:0 3px 6px rgba(0,0,0,.15); animation:drop .35s cubic-bezier(.3,1.4,.5,1)}
 .toast .ic{font-size:1.5rem}
 .toast small{display:block; font-size:.7rem; font-weight:600; color:var(--red)}
@@ -313,7 +318,7 @@ details p{margin:.4em 0}
 
 @keyframes in{from{opacity:0; transform:translateY(4px)}to{opacity:1; transform:none}}
 @keyframes fade{from{opacity:0}to{opacity:1}}
-@keyframes drop{from{opacity:0; transform:translateY(-30px)}to{opacity:1; transform:none}}
+@keyframes drop{from{opacity:0; transform:translateY(30px)}to{opacity:1; transform:none}}
 @keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
 @keyframes stamp{from{transform:rotate(-12deg) scale(2.2); opacity:0}to{transform:rotate(-12deg) scale(1); opacity:1}}
 @keyframes shake{0%,100%{transform:none}20%{transform:translateX(-5px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
@@ -1207,6 +1212,8 @@ class Game {
     // 행운 결과를 연출 전에 먼저 저장해서, 껐다 켜도 다시 굴릴 수 없게 해요
     f.score += res.final;
     f.resolving = true;
+    // 이번 전투 최고 일격: 특전 고르기 창에서 보여줘요 (카드는 그때 모습 그대로 복사해 둬요)
+    if (!f.best || res.final > f.best.final) f.best = { cards: JSON.parse(JSON.stringify(cs)), final: res.final };
     f.log = [{ id: uid(), text: cs.map(faceText).join(' '), note: '', style: 'expr' }];
     // 한 방 기록은 숫자 단계에서만 쳐요 (로그 단계의 자릿수와 섞이지 않게)
     const isLog = R.isLog(this.run);
@@ -1276,7 +1283,8 @@ class Game {
       run.gold += gain;
       run.goldTotal += gain;
       run.kills++;
-      run.lastGold = { g1, g2, g3, g4, gain, over, hp: f.hpMax, disc: f.discLeft, plays: f.playsLeft, ratePlay: rate.play, rateDisc: rate.disc, type: node.type };
+      run.lastGold = { g1, g2, g3, g4, gain, over, hp: f.hpMax, disc: f.discLeft, plays: f.playsLeft, ratePlay: rate.play, rateDisc: rate.disc, type: node.type,
+        cap: rnd(overkillCap(f.hpMax, node.type)) };  // 골드를 계산할 때 쓴 상한 (물가 포함) 그대로 보여줘요
       const oneShot = f.playsLeft === run.plays - 1;
       this.updateProfile(p => {
         p.stats.kills++;
@@ -2127,10 +2135,12 @@ function rewardHTML() {
   const run = G.run, rw = run.reward, g = run.lastGold;
   const wide = isWide();
   let summary = `<div class="sheet-head"><h2 class="h">${rw.count > 1 ? `특전 ${rw.idx}/${rw.count}` : '처치'}</h2><button class="chip" data-act="sheet" data-s="deck">덱 보기</button></div>`;
+  const best = run.fight && run.fight.best;
+  if (best) summary += `<div class="best"><p class="sect">이번 전투 최고 일격</p><div class="bestrow">${best.cards.map(c => `<div class="bc">${cardHTML(c, { noshadow: true, size: 22 })}</div>`).join('')}<b class="h">= ${R.dmgText(run, best.final)}</b></div></div>`;
   if (rw.idx === 1 && g) {
     const pct = rnd(g.over / g.hp * 100);
     const row = (t, v) => `<div class="gb"><span>${t}</span><b>${fmt(v)}</b></div>`;
-    summary += `<div class="box">${row('처치 보상', g.g1)}${row(`초과 피해 ${fmt(g.over)} (체력의 ${pct}%, 상한 ${fmt(rnd(overkillCap(g.hp, g.type)))})`, g.g2)}
+    summary += `<div class="box">${row('처치 보상', g.g1)}${row(`초과 피해 ${fmt(g.over)} (체력의 ${pct}%, 상한 ${fmt(g.cap ?? rnd(overkillCap(g.hp, g.type)))})`, g.g2)}
       ${row(`남은 계산 ${g.plays}번 × ${fmt(g.ratePlay)}`, g.g4)}${row(`남은 버리기 ${g.disc}번 × ${fmt(g.rateDisc)}`, g.g3)}
       <div class="gb sum"><span>합계</span><b>+${fmt(g.gain)}</b></div></div><p class="sub">특전 하나를 고르세요.</p>`;
   } else summary += `<p class="sub">하나 더 고르세요.</p>`;
@@ -2228,6 +2238,8 @@ function collectionHTML() {
 
 // ----- 알림 -----
 function pushToast(icon, title, subtitle) {
+  // 계산 연출 같은 중요한 순간에는 체력·골드를 가리지 않게 끝날 때까지 기다려요
+  if (G && G.busy && !G.run.over) { setTimeout(() => pushToast(icon, title, subtitle), 150); return; }
   const box = $('#toasts');
   const el = document.createElement('div');
   el.className = 'toast';

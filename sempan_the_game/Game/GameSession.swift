@@ -147,10 +147,12 @@ final class GameSession {
     }
 
     func pushToast(_ t: Toast) {
-        toasts.append(t)
-        // 알림은 3개까지만 쌓아요
-        if toasts.count > 3 { toasts.removeFirst(toasts.count - 3) }
         Task {
+            // 계산 연출 같은 중요한 순간에는 체력·골드를 가리지 않게 끝날 때까지 기다려요
+            while busy && run.over == nil { try? await Task.sleep(for: .milliseconds(150)) }
+            toasts.append(t)
+            // 알림은 3개까지만 쌓아요
+            if toasts.count > 3 { toasts.removeFirst(toasts.count - 3) }
             try? await Task.sleep(for: .seconds(2.6))
             toasts.removeAll { $0.id == t.id }
         }
@@ -573,6 +575,8 @@ final class GameSession {
         // 행운 결과를 연출 전에 먼저 저장해서, 앱을 껐다 켜도 다시 굴릴 수 없게 해요
         f.score += res.final
         f.resolving = true
+        // 이번 전투 최고 일격: 특전 고르기 창에서 보여줘요 (카드는 그때 모습 그대로 복사해 둬요)
+        if res.final > (f.best?.final ?? -1) { f.best = BestHit(cards: cs, final: res.final) }
         f.log = [LogLine(text: cs.map(\.faceText).joined(separator: " "), style: .expr)]
         run.fight = f
         // 한 방 기록은 숫자 단계에서만 쳐요 (로그 단계의 자릿수와 섞이지 않게)
@@ -669,7 +673,8 @@ final class GameSession {
             run.goldTotal += gain
             run.kills += 1
             run.lastGold = GoldBreakdown(g1: g1, g2: g2, g3: g3, g4: g4, gain: gain, over: over, hp: f.hpMax,
-                                         disc: f.discLeft, plays: f.playsLeft, ratePlay: rate.play, rateDisc: rate.disc, type: node.type)
+                                         disc: f.discLeft, plays: f.playsLeft, ratePlay: rate.play, rateDisc: rate.disc, type: node.type,
+                                         cap: RunState.overkillCap(f.hpMax, node.type).rounded())
             let oneShot = f.playsLeft == run.plays - 1
             let gold = run.gold
             updateProfile { p in

@@ -161,11 +161,12 @@ struct ToastStack: View {
                 .background(Theme.card, in: .rect(cornerRadius: 12))
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.ink, lineWidth: 2))
                 .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
-                .transition(.move(edge: .top).combined(with: .opacity))
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .padding(.horizontal, 16)
-        .padding(.top, 4)
+        .padding(.bottom, 12)
+        .frame(maxHeight: .infinity, alignment: .bottom)
         .animation(.spring(duration: 0.35), value: toasts)
         .allowsHitTesting(false)
     }

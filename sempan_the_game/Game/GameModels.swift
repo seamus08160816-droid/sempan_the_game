@@ -433,6 +433,14 @@ struct FightState: Codable {
     var log: [LogLine] = []
     /// 계산 결과는 저장됐지만 승패 처리가 아직이에요 (옛 저장과 호환되게 옵셔널)
     var resolving: Bool?
+    /// 이번 전투 최고 일격 (특전 고르기 창에서 보여줘요)
+    var best: BestHit?
+}
+
+/// 한 번의 계산: 쓴 카드(그때 모습 그대로)와 최종 피해
+struct BestHit: Codable {
+    var cards: [Card]
+    var final: Double
 }
 
 struct GoldBreakdown: Codable {
@@ -441,6 +449,8 @@ struct GoldBreakdown: Codable {
     var disc: Int, plays: Int
     var ratePlay: Double, rateDisc: Double
     var type: NodeType
+    /// 골드를 계산할 때 쓴 초과 피해 상한 (물가 포함). 예전 저장과 호환되게 옵셔널
+    var cap: Double?
 }
 
 // MARK: - 특전

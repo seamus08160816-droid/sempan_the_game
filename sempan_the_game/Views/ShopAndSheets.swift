@@ -131,6 +131,7 @@ struct RewardOverlay: View {
                 Spacer()
                 Button("덱 보기") { showDeck = true }.buttonStyle(ChipButtonStyle())
             }
+            if let best = session.run.fight?.best { bestHit(best) }
             if reward.idx == 1, let g = session.run.lastGold {
                 breakdown(g)
                 Text("특전 하나를 고르세요.").font(.subheadline).foregroundStyle(Theme.muted)
@@ -140,11 +141,32 @@ struct RewardOverlay: View {
         }
     }
 
+    /// 이번 전투 최고 일격: 쓴 카드와 최종 피해
+    private func bestHit(_ best: BestHit) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("이번 전투 최고 일격").font(.footnote.weight(.semibold)).foregroundStyle(Theme.muted)
+            HStack(spacing: 4) {
+                ForEach(best.cards.indices, id: \.self) { i in
+                    CardView(card: best.cards[i], fireBonus: session.run.fireBonus, fontSize: 22, badgeSize: 6, shadow: false)
+                        .frame(width: 36)
+                }
+                Text("= \(session.run.dmgText(best.final))")
+                    .font(.hand(24))
+                    .foregroundStyle(Theme.red)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .padding(.leading, 6)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("이번 전투 최고 일격: \(best.cards.map(\.faceText).joined(separator: " ")) = \(session.run.dmgText(best.final))")
+    }
+
     private func breakdown(_ g: GoldBreakdown) -> some View {
         let pct = Int((g.over / g.hp * 100).rounded())
         return VStack(spacing: 3) {
             row("처치 보상", g.g1)
-            row("초과 피해 \(Fmt.n(g.over)) (체력의 \(pct)%, 상한 \(Fmt.n(RunState.overkillCap(g.hp, g.type).rounded())))", g.g2)
+            row("초과 피해 \(Fmt.n(g.over)) (체력의 \(pct)%, 상한 \(Fmt.n(g.cap ?? RunState.overkillCap(g.hp, g.type).rounded())))", g.g2)
             row("남은 계산 \(g.plays)번 × \(Fmt.n(g.ratePlay))", g.g4)
             row("남은 버리기 \(g.disc)번 × \(Fmt.n(g.rateDisc))", g.g3)
             Divider().overlay(Theme.edge)
