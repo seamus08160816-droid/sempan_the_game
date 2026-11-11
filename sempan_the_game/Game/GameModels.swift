@@ -8,8 +8,10 @@ enum CFG {
     static let growthAfter: Double = 1.6              // 표 이후 막의 층당 배율
     static let eliteMult: Double = 1.5
     static let bossMult: Double = 1.8
-    /// 중반부(4~6막) 몹 체력 추가 배율. 보상은 그대로라 실제로 어려워져요
-    static let midHP: [Int: Double] = [4: 1.2, 5: 1.25, 6: 1.3]
+    /// 숫자 단계(1~6막) 몹 체력 보정: 1층은 hpScale0배에서 시작해, 층마다 그 막의 hpRamp만큼 곱해 가요.
+    /// 보상(물가)은 그대로라 낮추면 실제로 쉬워지고 높이면 실제로 어려워져요. 로그 단계에는 쓰지 않아요
+    static let hpScale0: Double = 0.75
+    static let hpRamp: [Int: Double] = [2: 1.0292, 3: 1.10, 4: 1.13, 5: 1.12, 6: 1.12]
     static let actLen = 10
     static let shopRate = 0.22
     static let eliteRate = 0.15
@@ -37,7 +39,7 @@ enum CFG {
     static let eliteGoldMult: Double = 1
     static let bossGoldMult: Double = 1
     static let powCap: Double = 2                     // ^ 카드 지수 상한 (같은 카드 두 장을 곱한 만큼까지)
-    static let logAct = 9                             // 이 막부터 로그 단계 (차원 상승)
+    static let logAct = 7                             // 이 막부터 로그 단계 (차원 상승). 7~8막 변신은 로그 단계에서 자릿수를 늘리는 카드예요
 }
 
 // MARK: - 카드 구성 요소
@@ -141,8 +143,6 @@ enum Enh: String, Codable, CaseIterable {
 enum Transform: String, Codable, CaseIterable {
     case sq, pow2, exp, fact
     case selfPow = "self", sfact, hfact
-    /// 테트레이션 3↑↑n: 보스 보상으로만 나와요
-    case tet
 
     var name: String {
         switch self {
@@ -153,7 +153,6 @@ enum Transform: String, Codable, CaseIterable {
         case .selfPow: "자기거듭제곱"
         case .sfact: "슈퍼팩토리얼"
         case .hfact: "하이퍼팩토리얼"
-        case .tet: "테트레이션"
         }
     }
 
@@ -166,7 +165,6 @@ enum Transform: String, Codable, CaseIterable {
         case .selfPow: 6
         case .sfact: 7
         case .hfact: 8
-        case .tet: 8
         }
     }
 
@@ -179,7 +177,6 @@ enum Transform: String, Codable, CaseIterable {
         case .selfPow: 9
         case .sfact: 7
         case .hfact: 6
-        case .tet: 3
         }
     }
 
@@ -192,14 +189,13 @@ enum Transform: String, Codable, CaseIterable {
         case .selfPow: 56
         case .sfact: 70
         case .hfact: 85
-        case .tet: 60
         }
     }
 
-    var isSpecial: Bool { self == .tet }
+    var isSpecial: Bool { false }
 
-    /// 막마다 하나씩 해금되는 변신 사다리 (특별 카드 제외)
-    static let ladder = allCases.filter { !$0.isSpecial }
+    /// 막마다 하나씩 해금되는 변신 사다리
+    static let ladder = allCases
 
     private static func fact(_ n: Int) -> Double { (1...max(1, n)).reduce(1.0) { $0 * Double($1) } }
 
@@ -212,7 +208,6 @@ enum Transform: String, Codable, CaseIterable {
         case .selfPow: return Foundation.pow(Double(n), Double(n))
         case .sfact: return (1...max(1, n)).reduce(1.0) { $0 * Self.fact($1) }
         case .hfact: return (1...max(1, n)).reduce(1.0) { $0 * Foundation.pow(Double($1), Double($1)) }
-        case .tet: return (0..<n).reduce(1.0) { r, _ in Foundation.pow(3, r) }
         }
     }
 
@@ -225,7 +220,6 @@ enum Transform: String, Codable, CaseIterable {
         case .selfPow: "\(v)^\(v)"
         case .sfact: "sf(\(v))"
         case .hfact: "H(\(v))"
-        case .tet: "3↑↑\(v)"
         }
     }
 
@@ -339,6 +333,13 @@ struct Card: Codable, Identifiable, Equatable {
 
     var label: String { kind == .num ? "숫자 \(faceText)" : "\(op?.symbol ?? "") 카드" }
 
+    /// 수식 글자: 다섯 장이면 앞의 세 장을 괄호로 묶어 계산 순서를 보여줘요
+    static func exprText(_ cs: [Card]) -> String {
+        let faces = cs.map(\.faceText)
+        guard faces.count == 5 else { return faces.joined(separator: " ") }
+        return "(\(faces[0..<3].joined(separator: " "))) \(faces[3...].joined(separator: " "))"
+    }
+
     var baseValue: Double {
         var value: Double
         if kind == .num {
@@ -354,6 +355,21 @@ struct Card: Codable, Identifiable, Equatable {
         for e in enh { value += e.value }
         if let tr { value += tr.value }
         return value
+    }
+}
+
+extension Card {
+    /// 예전 저장에 지금은 없는 변신(예: 테트레이션)이 붙어 있으면 평범한 숫자로 읽어요
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(Int.self, forKey: .id)
+        kind = try c.decode(CardKind.self, forKey: .kind)
+        v = try c.decodeIfPresent(Int.self, forKey: .v) ?? 0
+        op = try c.decodeIfPresent(Op.self, forKey: .op)
+        enh = try c.decodeIfPresent([Enh].self, forKey: .enh) ?? []
+        up = try c.decodeIfPresent(Int.self, forKey: .up) ?? 0
+        tr = (try? c.decodeIfPresent(Transform.self, forKey: .tr)) ?? nil
+        bonus = try c.decodeIfPresent(Double.self, forKey: .bonus) ?? 0
     }
 }
 
@@ -499,6 +515,22 @@ struct RewardState: Codable {
     var offers: [Perk]
 }
 
+/// 하나가 읽히지 않아도 나머지는 살리는 배열 원소
+private struct Lossy<T: Decodable>: Decodable {
+    let value: T?
+    init(from decoder: Decoder) throws { value = try? T(from: decoder) }
+}
+
+extension RewardState {
+    /// 예전 저장에 지금은 없는 특전(예: 테트레이션)이 있으면 그 선택지만 빼요
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        count = try c.decode(Int.self, forKey: .count)
+        idx = try c.decode(Int.self, forKey: .idx)
+        offers = try c.decode([Lossy<Perk>].self, forKey: .offers).compactMap(\.value)
+    }
+}
+
 /// 화면을 덮는 등장 장면 (보스, 차원 상승)
 struct Intro: Equatable {
     let id = UUID()
@@ -579,6 +611,15 @@ struct RunState: Codable {
         act - 1 < CFG.actGrowth.count ? CFG.actGrowth[act - 1] : CFG.growthAfter
     }
 
+    /// 숫자 단계 체력 보정 배율 (층마다 이어져서 막이 바뀔 때 튀지 않아요)
+    static func hpScaleAt(_ depth: Int) -> Double {
+        var s = CFG.hpScale0
+        if depth >= 2 {
+            for d in 2...depth { s *= CFG.hpRamp[Int((Double(d) / Double(CFG.actLen)).rounded(.up))] ?? 1 }
+        }
+        return s
+    }
+
     static func baseHPAt(_ depth: Int) -> Double {
         var h = CFG.baseHP
         if depth >= 2 {
@@ -593,7 +634,7 @@ struct RunState: Codable {
         var h = Self.baseHPAt(ladderDepth(max(1, f)))
         if type == .elite { h *= CFG.eliteMult }
         if type == .boss { h *= CFG.bossMult }
-        if !isLog { h *= CFG.midHP[act] ?? 1 }
+        if !isLog { h *= Self.hpScaleAt(depthOf(max(1, f))) }
         return (h / 10).rounded() * 10
     }
 

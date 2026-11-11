@@ -74,7 +74,6 @@ struct CardView: View {
             case .selfPow: Text("\(n)\(Text(n).font(small).baselineOffset(up))")
             case .sfact: Text("sf\(Text("(\(n))").font(small))")
             case .hfact: Text("H\(Text("(\(n))").font(small))")
-            case .tet: Text("3\(Text("↑↑").font(small))\(n)")
             }
         } else {
             Text("\(card.v)")

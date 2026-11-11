@@ -339,7 +339,6 @@ final class GameSession {
                 msg += " 이제 \(t.name) 변신 강화가 나와요."
             }
             if run.act == 6 { msg += " 이제 × 카드를 ^ 카드로 진화시킬 수 있어요." }
-            if run.act == 8 { msg += " 이번 막 보스부터 테트레이션 카드를 줘요." }
             msg += actStart()
         }
         run.mapMsg = msg
@@ -596,7 +595,7 @@ final class GameSession {
         f.resolving = true
         // 이번 전투 최고 일격: 특전 고르기 창에서 보여줘요 (카드는 그때 모습 그대로 복사해 둬요)
         if res.final > (f.best?.final ?? -1) { f.best = BestHit(cards: cs, final: res.final) }
-        f.log = [LogLine(text: cs.map(\.faceText).joined(separator: " "), style: .expr)]
+        f.log = [LogLine(text: Card.exprText(cs), style: .expr)]
         run.fight = f
         // 한 방 기록은 숫자 단계에서만 쳐요 (로그 단계의 자릿수와 섞이지 않게)
         let isLog = run.isLog
@@ -755,12 +754,6 @@ final class GameSession {
             guard act >= 6, let c = deck.filter({ $0.op == .mul }).randomElement() else { return nil }
             return Perk(kind: .evolve, cardID: c.id, title: "× 카드를 ^ 카드로 진화", desc: "거듭제곱: 왼쪽 수를 오른쪽 수만큼 거듭제곱해요 (지수는 \(Int(CFG.powCap))까지)")
         }
-        // 8막 보스부터 보상: 테트레이션 3↑↑n (입력 1 차이로 값이 수조 배씩 튀어서 로그 단계에서 쓰게 해요)
-        let tetra: () -> Perk? = {
-            let t = Transform.tet
-            guard let c = deck.filter({ $0.kind == .num && $0.tr != .tet && t.apply(min($0.v, t.cap)) > $0.numVal }).randomElement() else { return nil }
-            return Perk(kind: .transform(t), cardID: c.id, title: "숫자 \(c.faceText)에 테트레이션", desc: "보스 보상: 3↑↑n으로 변신해 계산 값이 \(Fmt.n(t.apply(min(c.v, t.cap))))이 돼요 (n은 \(t.cap)까지)")
-        }
         let hand = run.hand, discards = run.discards
         var gens: [() -> Perk?] = [
             evolve, evolve,
@@ -784,10 +777,6 @@ final class GameSession {
         // 같은 카드를 두 번 고르지 않고, 같은 종류의 특전도 두 번 내지 않아요
         var used: Set<String> = []
         func keys(_ o: Perk) -> [String] { [o.cardID.map { "c\($0)" }, "k" + o.kind.sameKindKey].compactMap { $0 } }
-        if node?.type == .boss && run.act >= Transform.tet.act, let t = tetra() {
-            out.append(t)
-            used.formUnion(keys(t))
-        }
         var guardCount = 0
         while out.count < size && guardCount < 200 {
             guardCount += 1

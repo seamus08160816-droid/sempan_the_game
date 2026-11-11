@@ -21,6 +21,8 @@ final class Sound {
     @ObservationIgnored private var pools: [SFX: [AVAudioPlayer]] = [:]
     @ObservationIgnored private var music: AVAudioPlayer?
     @ObservationIgnored private var lastSwish = Date.distantPast
+    /// 앱이 앞에 나와 있는지. 백그라운드(또는 다른 앱이 앞)에서는 소리를 내지 않아요
+    @ObservationIgnored private var isActive = true
 
     private init() {
         musicOn = UserDefaults.standard.object(forKey: "musicOn") as? Bool ?? true
@@ -49,7 +51,7 @@ final class Sound {
     }
 
     func play(_ s: SFX, volume: Float = 1, rate: Float = 1) {
-        guard sfxOn, let pool = pools[s], let p = pool.first(where: { !$0.isPlaying }) ?? pool.first else { return }
+        guard sfxOn, isActive, let pool = pools[s], let p = pool.first(where: { !$0.isPlaying }) ?? pool.first else { return }
         p.currentTime = 0
         p.volume = volume
         p.rate = rate
@@ -68,9 +70,21 @@ final class Sound {
         dmg <= 0 ? 0 : dmg < hp * 0.15 ? 1 : dmg < hp * 0.4 ? 2 : dmg < hp ? 3 : 4
     }
 
+    /// 앱이 백그라운드로 가면 배경음과 효과음을 멈추고, 돌아오면 배경음을 다시 틀어요
+    func setActive(_ active: Bool) {
+        guard active != isActive else { return }
+        isActive = active
+        if active {
+            updateMusic()
+        } else {
+            music?.pause()
+            for pool in pools.values { for p in pool where p.isPlaying { p.stop() } }
+        }
+    }
+
     func updateMusic() {
         guard let music else { return }
-        if musicOn {
+        if musicOn && isActive {
             if !music.isPlaying {
                 music.volume = 0
                 music.play()

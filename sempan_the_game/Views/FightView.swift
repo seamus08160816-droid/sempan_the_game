@@ -164,6 +164,26 @@ struct FightView: View {
     private func slots(_ sel: [Card]) -> some View {
         HStack(spacing: 6) {
             ForEach(0..<CFG.maxLen, id: \.self) { i in
+                slot(i, sel)
+                    // 앞의 세 칸(첫 계산)을 괄호로 묶어 계산 순서를 보여줘요. 칸 사이 틈에 그려서 자리는 그대로예요
+                    .overlay(alignment: i == 0 ? .leading : .trailing) {
+                        if i == 0 || i == 2 {
+                            ParenShape(closing: i == 2)
+                                .stroke(sel.count >= 3 ? Theme.ink : Theme.edge, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                                .frame(width: 5)
+                                .padding(.vertical, 6)
+                                .offset(x: i == 0 ? -5.5 : 5.5)
+                                .animation(.easeOut(duration: 0.2), value: sel.count >= 3)
+                                .accessibilityHidden(true)
+                        }
+                    }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func slot(_ i: Int, _ sel: [Card]) -> some View {
+        Group {
                 if i < sel.count {
                     let c = sel[i]
                     Button {
@@ -180,7 +200,6 @@ struct FightView: View {
                 } else {
                     GhostCard(label: i % 2 == 0 ? "숫자" : "기호")
                 }
-            }
         }
     }
 
@@ -350,6 +369,20 @@ struct ScribbleStroke: Shape {
         var p = Path()
         p.move(to: top)
         p.addQuadCurve(to: bottom, control: mid)
+        return p
+    }
+}
+
+/// 손으로 그은 듯한 괄호 한 짝 "(" 또는 ")"
+struct ParenShape: Shape {
+    var closing: Bool
+
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        let edge = closing ? r.minX : r.maxX
+        let bulge = closing ? r.maxX + r.width * 0.9 : r.minX - r.width * 0.9
+        p.move(to: CGPoint(x: edge, y: r.minY))
+        p.addQuadCurve(to: CGPoint(x: edge, y: r.maxY), control: CGPoint(x: bulge, y: r.midY))
         return p
     }
 }

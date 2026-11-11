@@ -147,8 +147,11 @@ struct RewardOverlay: View {
             Text("이번 전투 최고 일격").font(.footnote.weight(.semibold)).foregroundStyle(Theme.muted)
             HStack(spacing: 4) {
                 ForEach(best.cards.indices, id: \.self) { i in
+                    let five = best.cards.count == 5
+                    if five && i == 0 { Text("(").font(.hand(30)).foregroundStyle(Theme.ink) }
                     CardView(card: best.cards[i], fireBonus: session.run.fireBonus, fontSize: 22, badgeSize: 6, shadow: false)
                         .frame(width: 36)
+                    if five && i == 2 { Text(")").font(.hand(30)).foregroundStyle(Theme.ink) }
                 }
                 Text("= \(session.run.dmgText(best.final))")
                     .font(.hand(24))
@@ -159,7 +162,7 @@ struct RewardOverlay: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("이번 전투 최고 일격: \(best.cards.map(\.faceText).joined(separator: " ")) = \(session.run.dmgText(best.final))")
+        .accessibilityLabel("이번 전투 최고 일격: \(Card.exprText(best.cards)) = \(session.run.dmgText(best.final))")
     }
 
     private func breakdown(_ g: GoldBreakdown) -> some View {

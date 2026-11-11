@@ -47,16 +47,15 @@ Gold = kill reward + overkill gold + remaining calculations × rate + remaining 
 | Act 4 | Natural exponent eⁿ | 12 |
 | Act 5 | Factorial n! | 10 |
 | Act 6 | Self-power nⁿ | 9 |
-| Act 7 | Superfactorial sf(n) = 1!×2!×…×n! | 7 |
-| Act 8 | Hyperfactorial H(n) = 1¹×2²×…×nⁿ | 6 |
-| Boss reward from act 8 | Tetration 3↑↑n | 3 |
+| Act 7 (log act 1) | Superfactorial sf(n) = 1!×2!×…×n! | 7 |
+| Act 8 (log act 2) | Hyperfactorial H(n) = 1¹×2²×…×nⁿ | 6 |
 
-Input caps are set so that the strongest single card in each act is roughly a few dozen times weaker than that act's floor-1 monster HP.
+Input caps are set so that the strongest single card in each act is roughly a few dozen times weaker than that act's floor-1 monster HP. The act 7–8 transformations are cards that add many digits in the log stage.
 
 Perk offers never suggest a transformation that lowers a card's value, and the same kind of perk never appears twice in one offer.
 
 **Dimension ascent (log stage)**
-After act 8 the game enters the log stage. Monster HP is shown as a power of ten (e.g. 10^60), and the number of digits in your result (log₁₀) becomes the base damage; enhancements apply to those digits. HP and prices restart from the act 1 curve, and gold is converted to the new scale. Very large numbers are handled as logarithms internally, so calculations never overflow.
+After act 6 the game enters the log stage. Monster HP is shown as a power of ten (e.g. 10^60), and the number of digits in your result (log₁₀) becomes the base damage; enhancements apply to those digits. HP and prices restart from the act 1 curve, and gold is converted to the new scale. Very large numbers are handled as logarithms internally, so calculations never overflow.
 
 **Perks**
 Perks are unlocked outside of runs, and up to 3 can be equipped. You start with none and unlock one at a time by reaching deeper floors. Change your loadout from the main menu; it applies from the next new game. Each perk is balanced to be worth roughly one free shop restock per act.
@@ -117,7 +116,7 @@ Most values live in `CFG` and the `Transform` enum at the top of `sempan_the_gam
 | `goldA`, `goldK`, `goldCap` | Overkill gold curve |
 | `playGold`, `discGold` | Gold per remaining calculation / discard |
 | `fireBase`, `firePow` | Size of the Fire bonus |
-| `midHP` | Extra HP multiplier for the mid-game (acts 4–6) |
+| `hpScale0`, `hpRamp` | HP adjustment for the number stage (acts 1–6): floor-1 scale and per-floor multiplier per act (rewards are unchanged, so only difficulty shifts) |
 | `powCap` | Exponent cap for ^ cards |
 | `logAct` | First act of the log stage |
 | `Transform.cap` | Input cap for each transformation |
