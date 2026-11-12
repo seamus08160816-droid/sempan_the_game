@@ -20,6 +20,8 @@ struct ContentView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: session == nil)
+        // 언어를 바꾸면 화면 전체를 다시 그려요 (L()로 만든 글자도 새 언어로)
+        .id(Lang.shared.code)
         .onAppear { Sound.shared.updateMusic() }
         // 백그라운드로 가거나 다른 앱이 앞에 오면 소리를 꺼요
         .onChange(of: scenePhase) { _, phase in Sound.shared.setActive(phase == .active) }

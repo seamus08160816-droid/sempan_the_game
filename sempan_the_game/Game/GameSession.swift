@@ -87,15 +87,14 @@ final class GameSession {
             unlocked = p.evaluateAchievements()
             perks = p.evaluatePerks()
         }
-        for a in unlocked { pushToast(Toast(icon: a.icon, title: "업적 달성!", subtitle: a.title)) }
+        for a in unlocked { pushToast(Toast(icon: a.icon, title: L("업적 달성!", "Achievement unlocked!"), subtitle: a.title)) }
         // 한꺼번에 여럿 풀리면 (예전 기록으로 처음 열 때) 알림 하나로 묶어요
         if perks.count > 2 {
             let names = perks.prefix(3).map(\.name).joined(separator: ", ")
-            pushToast(Toast(icon: "🎒", title: "퍽 해금! 메인 화면에서 장착해요", subtitle: "\(names) 외 \(perks.count - 3)개"))
+            pushToast(Toast(icon: "🎒", title: L("퍽 해금! 메인 화면에서 장착해요", "Perk unlocked! Equip it from the main menu"), subtitle: L("\(names) 외 \(perks.count - 3)개", "\(names) and \(perks.count - 3) more")))
         } else {
-            for k in perks { pushToast(Toast(icon: k.icon, title: "퍽 해금! 메인 화면에서 장착해요", subtitle: k.name)) }
+            for k in perks { pushToast(Toast(icon: k.icon, title: L("퍽 해금! 메인 화면에서 장착해요", "Perk unlocked! Equip it from the main menu"), subtitle: k.name)) }
         }
-        if !unlocked.isEmpty || !perks.isEmpty { Sound.shared.play(.fanfare) }
     }
 
     // MARK: 퍽
@@ -117,7 +116,7 @@ final class GameSession {
         let g = (12 * run.econ(at: 1)).rounded()
         run.gold += g
         run.goldTotal += g
-        return " 비상금 +\(Fmt.n(g))골드."
+        return L(" 비상금 +\(Fmt.n(g))골드.", " Allowance +\(Fmt.n(g)) gold.")
     }
 
     /// 진행 중인 판을 슬롯에 저장해요
@@ -138,10 +137,9 @@ final class GameSession {
             for c in cards { newKeys += p.collect(c) }
         }
         guard !silent else { return }
-        if !newKeys.isEmpty { Sound.shared.play(.chime, volume: 0.8) }
         for key in newKeys {
             if let entry = CardCatalog.entries.first(where: { $0.key == key }) {
-                pushToast(Toast(icon: "🃏", title: "도감 등록", subtitle: entry.title))
+                pushToast(Toast(icon: "🃏", title: L("도감 등록", "Added to collection"), subtitle: entry.title))
             }
         }
     }
@@ -188,8 +186,8 @@ final class GameSession {
         let unlocked = p.perksUnlocked ?? []
         run.perks = Array((p.equipped ?? []).filter { unlocked.contains($0) }.prefix(MetaPerk.slots))
         run.mapMsg = (p.bestDepth > 0
-            ? "역대 기록: \(p.bestDepth)층까지, 한 방 \(Fmt.n(p.bestSingle))."
-            : "1층에서 출발할 칸을 고르세요.") + actStart()
+            ? L("역대 기록: \(p.bestDepth)층까지, 한 방 \(Fmt.n(p.bestSingle)).", "Best: floor \(p.bestDepth), best hit \(Fmt.n(p.bestSingle)).")
+            : L("1층에서 출발할 칸을 고르세요.", "Pick where to start on floor 1.")) + actStart()
         updateProfile { $0.stats.runsStarted += 1 }
         collect(run.deck, silent: true)
         save()
@@ -288,9 +286,9 @@ final class GameSession {
         guard run.reachable(n), !busy else { return }
         guard n.type == .boss else { enter(n); return }
         // 보스 앞: 화면이 어두워지며 이름판이 꽂히고 무거운 종이 울려요
-        let sub = "\(run.actName) 보스 · 체력 \(run.hpText(run.hpFor(n.floor, .boss)))"
+        let sub = L("\(run.actName) 보스 · 체력 \(run.hpText(run.hpFor(n.floor, .boss)))", "\(run.actName) boss · HP \(run.hpText(run.hpFor(n.floor, .boss)))")
         Task {
-            await showIntro(Intro(icon: "👑", title: n.name, sub: sub))
+            await showIntro(Intro(icon: "👑", title: MobNames.display(n.name), sub: sub))
             enter(n)
         }
     }
@@ -330,15 +328,15 @@ final class GameSession {
                     let bonus = max(CFG.stackStep, (run.deck[i].bonus / oldEcon).rounded())
                     run.deck[i].bonus = bonus
                 }
-                msg += " 차원 상승! 이제 체력은 10의 거듭제곱이고, 계산 결과의 자릿수(log₁₀)만큼 깎여요. 골드도 새 단위로 바뀌었어요."
-                Task { await showIntro(Intro(icon: "🌌", title: "차원 상승", sub: "로그 단계 · 결과의 자릿수가 피해가 돼요")) }
+                msg += L(" 차원 상승! 이제 체력은 10의 거듭제곱이고, 계산 결과의 자릿수(log₁₀)만큼 깎여요. 골드도 새 단위로 바뀌었어요.", " Dimension Ascent! HP is now a power of ten, and your result's digits (log₁₀) are the damage. Your gold has been converted to the new scale.")
+                Task { await showIntro(Intro(icon: "🌌", title: L("차원 상승", "Dimension Ascent"), sub: L("로그 단계 · 결과의 자릿수가 피해가 돼요", "Log stage · your result's digits become damage"))) }
             } else {
-                msg += " \(run.actName)이 시작됐어요."
+                msg += L(" \(run.actName)이 시작됐어요.", " \(run.actName) begins.")
             }
             if let t = Transform.ladder.first(where: { $0.act == run.act }) {
-                msg += " 이제 \(t.name) 변신 강화가 나와요."
+                msg += L(" 이제 \(t.name) 변신 강화가 나와요.", " \(t.name) transformations now appear.")
             }
-            if run.act == 6 { msg += " 이제 × 카드를 ^ 카드로 진화시킬 수 있어요." }
+            if run.act == 6 { msg += L(" 이제 × 카드를 ^ 카드로 진화시킬 수 있어요.", " You can now evolve × cards into ^ cards.") }
             msg += actStart()
         }
         run.mapMsg = msg
@@ -356,8 +354,9 @@ final class GameSession {
         var f = FightState(nodeID: node.id, hpMax: run.hpFor(run.floor, node.type),
                            playsLeft: run.plays, discLeft: run.discards, numDraw: nums, opDraw: ops)
         let rate = run.leftoverRate
-        let logRule = run.isLog ? " 로그 단계라서 계산 결과의 자릿수(log₁₀)만큼 체력의 지수가 깎여요." : ""
-        f.log = [LogLine(text: "\(node.name)이(가) 나타났어요. \(run.plays)번 안에 체력 \(run.hpText(f.hpMax))을 깎으세요.\(logRule) 이기면 남은 계산 1번당 \(Fmt.n(rate.play))골드, 버리기 1번당 \(Fmt.n(rate.disc))골드를 받아요.", style: .info)]
+        let logRule = run.isLog ? L(" 로그 단계라서 계산 결과의 자릿수(log₁₀)만큼 체력의 지수가 깎여요.", " In the log stage, your result's digits (log₁₀) come off the HP exponent.") : ""
+        let name = MobNames.display(node.name)
+        f.log = [LogLine(text: L("\(name)이(가) 나타났어요. \(run.plays)번 안에 체력 \(run.hpText(f.hpMax))을 깎으세요.\(logRule) 이기면 남은 계산 1번당 \(Fmt.n(rate.play))골드, 버리기 1번당 \(Fmt.n(rate.disc))골드를 받아요.", "\(name) appears. Bring its HP of \(run.hpText(f.hpMax)) to zero within \(run.plays) calcs.\(logRule) Win to earn \(Fmt.n(rate.play)) gold per unused calc and \(Fmt.n(rate.disc)) gold per unused discard."), style: .info)]
         run.fight = f
         run.phase = .fight
         refill()
@@ -393,7 +392,7 @@ final class GameSession {
         run.fight = f
         refill()
         Sound.shared.play(.toss)
-        log("연필 깎기: 손패를 새로 뽑았어요", .info)
+        log(L("연필 깎기: 손패를 새로 뽑았어요", "Sharpen: you drew a fresh hand"), .info)
         save()
         checkStuck()
     }
@@ -425,11 +424,11 @@ final class GameSession {
     var selectedCards: [Card] { (run.fight?.sel ?? []).compactMap { run.card($0) } }
 
     func validity(_ s: [Card]) -> (ok: Bool, msg: String) {
-        if s.isEmpty { return (false, "손패를 누르거나 훑어서 카드를 골라 수식을 만드세요") }
+        if s.isEmpty { return (false, L("손패를 누르거나 훑어서 카드를 골라 수식을 만드세요", "Tap or swipe your hand to build an equation")) }
         for (i, c) in s.enumerated() where (i % 2 == 0) != (c.kind == .num) {
-            return (false, "숫자와 기호를 번갈아 놓아야 해요")
+            return (false, L("숫자와 기호를 번갈아 놓아야 해요", "Alternate numbers and operators"))
         }
-        if s.count % 2 == 0 { return (false, "숫자로 끝나야 계산할 수 있어요") }
+        if s.count % 2 == 0 { return (false, L("숫자로 끝나야 계산할 수 있어요", "The equation must end with a number")) }
         return (true, "")
     }
 
@@ -445,20 +444,20 @@ final class GameSession {
             var note = ""
             switch o.op ?? .add {
             case .add:
-                if o.enh.contains(.amp) { r = a + b * .of(3); note = "증폭: 오른쪽 ×3" } else { r = a + b }
-                if o.enh.contains(.stack) { r = r + .of(o.bonus); note = "적립 +\(Fmt.n(o.bonus))" }
+                if o.enh.contains(.amp) { r = a + b * .of(3); note = L("증폭: 오른쪽 ×3", "Amplify: right ×3") } else { r = a + b }
+                if o.enh.contains(.stack) { r = r + .of(o.bonus); note = L("적립 +\(Fmt.n(o.bonus))", "Accumulate +\(Fmt.n(o.bonus))") }
             case .sub:
                 // 역전은 빼서 음수가 될 때 발동해서, 빼는 대신 두 수를 더하고 ×4 해요
                 r = a - b
-                if o.enh.contains(.flip) && r.s < 0 { r = (a + b) * .of(4); note = "역전: 더하고 ×4" }
+                if o.enh.contains(.flip) && r.s < 0 { r = (a + b) * .of(4); note = L("역전: 더하고 ×4", "Reversal: add, ×4") }
             case .mul:
                 r = a * b
             case .div:
-                if o.enh.contains(.exact) && BigNum.divides(a, b) { r = a * b * .of(2); note = "정확: 곱하고 ×2" }
+                if o.enh.contains(.exact) && BigNum.divides(a, b) { r = a * b * .of(2); note = L("정확: 곱하고 ×2", "Exact: multiply, ×2") }
                 else { r = a / b }
             case .pow:
                 r = a.power(b)
-                if abs(b.num) > CFG.powCap { note = "지수는 \(Int(CFG.powCap))까지" }
+                if abs(b.num) > CFG.powCap { note = L("지수는 \(Int(CFG.powCap))까지", "exponent capped at \(Int(CFG.powCap))") }
             }
             val = r
             let shown = o.enh.contains(.amp) ? "\(a.text) + \(b.text)×3" : "\(a.text) \(o.op?.symbol ?? "") \(b.text)"
@@ -477,18 +476,18 @@ final class GameSession {
         var val: Double
         if run.isLog {
             val = chained.val.s > 0 ? max(0, chained.val.log) : 0
-            res.steps.append(("자릿수 log₁₀ = \(Fmt.n((val * 100).rounded(.down) / 100))", "로그 단계"))
+            res.steps.append((L("자릿수 log₁₀ = \(Fmt.n((val * 100).rounded(.down) / 100))", "Digits log₁₀ = \(Fmt.n((val * 100).rounded(.down) / 100))"), L("로그 단계", "log stage")))
         } else {
             val = chained.val.v ?? chained.val.s * BigNum.big
         }
         let fire = run.fireBonus
         for c in cs where c.enh.contains(.fire) {
             val += fire
-            res.fx.append(("불꽃 +\(Fmt.n(fire))", .fx))
+            res.fx.append((L("불꽃 +\(Fmt.n(fire))", "Fire +\(Fmt.n(fire))"), .fx))
         }
         for c in cs where c.enh.contains(.gold) {
             val *= 2
-            res.fx.append(("황금 ×2", .fxGold))
+            res.fx.append((L("황금 ×2", "Gold ×2"), .fxGold))
         }
         let chance = run.hasPerk(.clover) ? 0.35 : CFG.luckChance
         for c in cs where c.enh.contains(.luck) {
@@ -497,9 +496,9 @@ final class GameSession {
                 if Double.random(in: 0..<1) < chance {
                     val *= 5
                     res.luckHit = true
-                    res.fx.append(("행운 ×5!!", .fxGold))
+                    res.fx.append((L("행운 ×5!!", "Luck ×5!!"), .fxGold))
                 } else {
-                    res.fx.append(("행운은 다음 기회에", .miss))
+                    res.fx.append((L("행운은 다음 기회에", "No luck this time"), .miss))
                 }
             }
         }
@@ -520,7 +519,7 @@ final class GameSession {
     func select(_ id: Int) {
         guard !busy, var f = run.fight else { return }
         if f.sel.count >= CFG.maxLen {
-            previewOverride = "수식은 최대 \(CFG.maxLen)장이에요"
+            previewOverride = L("수식은 최대 \(CFG.maxLen)장이에요", "An equation holds at most \(CFG.maxLen) cards")
             return
         }
         guard let i = f.handCards.firstIndex(where: { $0.cardID == id && !$0.out }) else { return }
@@ -564,7 +563,7 @@ final class GameSession {
         guard let f = run.fight else { return }
         let hasNum = f.handCards.contains { run.card($0.cardID)?.kind == .num }
         if !hasNum && f.discLeft == 0 && f.playsLeft > 0 {
-            gameOver("낼 수 있는 숫자 카드가 없고 버리기도 다 썼어요")
+            gameOver(L("낼 수 있는 숫자 카드가 없고 버리기도 다 썼어요", "No number cards to play and no discards left"))
         }
     }
 
@@ -622,7 +621,7 @@ final class GameSession {
             if fx.style == .miss {
                 Sound.shared.play(.miss)
             } else {
-                Sound.shared.play(fx.text.hasPrefix("행운") ? .luck : .sparkle)
+                Sound.shared.play(fx.text.contains("×5") ? .luck : .sparkle)
                 shake(1)
             }
         }
@@ -675,7 +674,7 @@ final class GameSession {
             f.playsLeft = 1
             run.fight = f
             usePerk(.grit)
-            log("뒷심! 한 번 더 계산할 수 있어요", .fxGold)
+            log(L("뒷심! 한 번 더 계산할 수 있어요", "Second Wind! You can calculate once more"), .fxGold)
             return .next
         }
         run.fight = f
@@ -703,10 +702,10 @@ final class GameSession {
                 if over >= f.hpMax * 2 { p.stats.bigOverkills += 1 }
                 p.stats.maxGold = max(p.stats.maxGold, gold)
             }
-            log("처치 \(Fmt.n(g1)) + 초과 피해 \(Fmt.n(g2)) + 남은 계산 \(Fmt.n(g4)) + 남은 버리기 \(Fmt.n(g3)) = 골드 +\(Fmt.n(gain))", .fxGold)
+            log(L("처치 \(Fmt.n(g1)) + 초과 피해 \(Fmt.n(g2)) + 남은 계산 \(Fmt.n(g4)) + 남은 버리기 \(Fmt.n(g3)) = 골드 +\(Fmt.n(gain))", "Kill \(Fmt.n(g1)) + overkill \(Fmt.n(g2)) + unused calcs \(Fmt.n(g4)) + unused discards \(Fmt.n(g3)) = +\(Fmt.n(gain)) gold"), .fxGold)
             return .win(rewards: node.type == .elite ? 2 : 1)
         }
-        if f.playsLeft == 0 { return .lose(reason: "\(node.name)의 체력이 \(run.hpText(f.hpMax - f.score)) 남았어요") }
+        if f.playsLeft == 0 { return .lose(reason: L("\(MobNames.display(node.name))의 체력이 \(run.hpText(f.hpMax - f.score)) 남았어요", "\(MobNames.display(node.name)) still had \(run.hpText(f.hpMax - f.score)) HP left")) }
         return .next
     }
 
@@ -730,29 +729,29 @@ final class GameSession {
         let deck = run.deck
         let enchant: (Enh) -> () -> Perk? = { e in {
             guard let c = deck.filter({ !($0.op?.isPlain ?? false) && !$0.enh.contains(e) }).randomElement() else { return nil }
-            return Perk(kind: .enchant(e), cardID: c.id, title: "\(c.label)에 \(e.name)", desc: e.desc)
+            return Perk(kind: .enchant(e), cardID: c.id, title: L("\(c.label)에 \(e.name)", "\(e.name) on \(c.label)"), desc: e.desc)
         } }
         let opPerk: (Enh) -> () -> Perk? = { e in {
             guard let c = deck.filter({ $0.op == e.op && !$0.enh.contains(where: \.isOpPerk) }).randomElement() else { return nil }
-            return Perk(kind: .opPerk(e), cardID: c.id, title: "\(c.label)에 \(e.name)", desc: e.desc)
+            return Perk(kind: .opPerk(e), cardID: c.id, title: L("\(c.label)에 \(e.name)", "\(e.name) on \(c.label)"), desc: e.desc)
         } }
         let upNum: () -> Perk? = {
             // 변신 상한에 닿은 카드는 n을 올려도 값이 그대로라 빼요
             guard let c = deck.filter({ $0.kind == .num && $0.v < ($0.tr?.cap ?? .max) }).randomElement() else { return nil }
-            return Perk(kind: .upNum, cardID: c.id, title: "숫자 \(c.faceText)의 n을 \(c.v + 3)으로", desc: "이 카드의 값이 영구히 3 올라요")
+            return Perk(kind: .upNum, cardID: c.id, title: L("숫자 \(c.faceText)의 n을 \(c.v + 3)으로", "Raise Number \(c.faceText) to \(c.v + 3)"), desc: L("이 카드의 값이 영구히 3 올라요", "Permanently adds 3 to this card's value"))
         }
         let trPerk: (Transform) -> () -> Perk? = { t in {
             // 값이 내려가는 변신은 내지 않아요 (예: 3² = 9 → 2³ = 8)
             guard let c = deck.filter({ $0.kind == .num && $0.trIndex < t.index && t.apply(min($0.v, t.cap)) > $0.numVal }).randomElement() else { return nil }
             let after = t.apply(min(c.v, t.cap))
-            let title = c.tr != nil ? "\(c.faceText)을 \(t.text(String(min(c.v, t.cap))))로" : "숫자 \(c.v)에 \(t.name)"
-            return Perk(kind: .transform(t), cardID: c.id, title: title, desc: "변신하면 이 카드의 계산 값이 \(Fmt.n(after))이 돼요")
+            let title = c.tr != nil ? L("\(c.faceText)을 \(t.text(String(min(c.v, t.cap))))로", "Turn \(c.faceText) into \(t.text(String(min(c.v, t.cap))))") : L("숫자 \(c.v)에 \(t.name)", "\(t.name) on number \(c.v)")
+            return Perk(kind: .transform(t), cardID: c.id, title: title, desc: L("변신하면 이 카드의 계산 값이 \(Fmt.n(after))이 돼요", "Transformed, this card counts as \(Fmt.n(after))"))
         } }
         // 6막부터: × 카드를 ^ 카드로 진화
         let act = run.act
         let evolve: () -> Perk? = {
             guard act >= 6, let c = deck.filter({ $0.op == .mul }).randomElement() else { return nil }
-            return Perk(kind: .evolve, cardID: c.id, title: "× 카드를 ^ 카드로 진화", desc: "거듭제곱: 왼쪽 수를 오른쪽 수만큼 거듭제곱해요 (지수는 \(Int(CFG.powCap))까지)")
+            return Perk(kind: .evolve, cardID: c.id, title: L("× 카드를 ^ 카드로 진화", "Evolve a × card into a ^ card"), desc: L("거듭제곱: 왼쪽 수를 오른쪽 수만큼 거듭제곱해요 (지수는 \(Int(CFG.powCap))까지)", "Power: raises the left number to the right number (exponent capped at \(Int(CFG.powCap)))"))
         }
         let hand = run.hand, discards = run.discards
         var gens: [() -> Perk?] = [
@@ -767,8 +766,8 @@ final class GameSession {
         let chance = { (p: Double) in Double.random(in: 0..<1) < p }
         gens += [
             // 손패·버리기 +1은 판을 크게 바꿔서 드물게, 상한까지만 나와요 (계산 기회 +1은 없어요)
-            { hand < CFG.handMax && chance(CFG.handPerkRate) ? Perk(kind: .handSize, glyph: "손+1", title: "손패 +1장", desc: "한 번에 들고 있는 카드가 늘어요") : nil },
-            { discards < CFG.discardMax && chance(CFG.discardPerkRate) ? Perk(kind: .discards, glyph: "버림", title: "버리기 +1", desc: "전투마다 한 번 더 버릴 수 있어요") : nil }
+            { hand < CFG.handMax && chance(CFG.handPerkRate) ? Perk(kind: .handSize, glyph: L("손+1", "Hand+1"), title: L("손패 +1장", "Hand +1"), desc: L("한 번에 들고 있는 카드가 늘어요", "Hold one more card at a time")) : nil },
+            { discards < CFG.discardMax && chance(CFG.discardPerkRate) ? Perk(kind: .discards, glyph: L("버림", "Discard"), title: L("버리기 +1", "Discard +1"), desc: L("전투마다 한 번 더 버릴 수 있어요", "One more discard in every fight")) : nil }
         ]
         let node = fightNode
         // 정예 사냥꾼: 정예를 잡으면 선택지 4개
@@ -790,12 +789,13 @@ final class GameSession {
 
     private func openReward(count: Int, idx: Int = 1) {
         run.reward = RewardState(count: count, idx: idx, offers: genPerks())
+        // 특전 고르기 창이 뜰 때 동전 짤랑
+        Sound.shared.play(.coins)
         save()
     }
 
     func choose(_ perk: Perk) {
         guard let reward = run.reward else { return }
-        Sound.shared.play(.coins)
         if let id = perk.cardID, let i = run.deck.firstIndex(where: { $0.id == id }) {
             switch perk.kind {
             case .upNum:
@@ -826,7 +826,7 @@ final class GameSession {
             openReward(count: reward.count, idx: reward.idx + 1)
         } else {
             run.reward = nil
-            afterNode("\(fightNode?.name ?? "몹") 처치! 골드 +\(Fmt.n(run.lastGold?.gain ?? 0))")
+            afterNode(L("\(MobNames.display(fightNode?.name ?? "몹")) 처치! 골드 +\(Fmt.n(run.lastGold?.gain ?? 0))", "\(MobNames.display(fightNode?.name ?? "몹")) defeated! +\(Fmt.n(run.lastGold?.gain ?? 0)) gold"))
         }
     }
 
@@ -878,7 +878,7 @@ final class GameSession {
 
     private func openShop() {
         run.shop = ShopState(items: genShop(), pendingID: nil,
-                             msg: "숫자 카드는 숫자와, 기호 카드는 기호와 바꿔요. 지금 물가는 1막 1층의 \(Fmt.n(run.econ))배예요.")
+                             msg: L("숫자 카드는 숫자와, 기호 카드는 기호와 바꿔요. 지금 물가는 1막 1층의 \(Fmt.n(run.econ))배예요.", "Swap number cards for numbers and operator cards for operators. Prices are \(Fmt.n(run.econ))× those of Act 1, Floor 1."))
         run.phase = .shop
         save()
     }
@@ -906,7 +906,8 @@ final class GameSession {
         if run.perkReady(.coupon) { usePerk(.coupon) }
         run.deck[i] = pend
         run.shop?.items.removeAll { $0.id == pend.id }
-        run.shop?.msg = "\(old.label)을(를) 버리고 \(pend.label)을(를) 넣었어요."
+        let swapMsg = L("\(old.label)을(를) 버리고 \(pend.label)을(를) 넣었어요.", "Swapped out \(old.label) for \(pend.label).")
+        run.shop?.msg = swapMsg
         run.shop?.pendingID = nil
         updateProfile { $0.stats.cardsBought += 1 }
         collect([pend])
@@ -920,18 +921,19 @@ final class GameSession {
         let items = genShop()
         run.shop?.items = items
         run.shop?.pendingID = nil
-        run.shop?.msg = "재입고! 물건을 새로 들여왔어요."
+        let restockMsg = L("재입고! 물건을 새로 들여왔어요.", "Restocked! Fresh cards are in.")
+        run.shop?.msg = restockMsg
         Sound.shared.play(.coins, volume: 0.6, rate: 1.2)
         save()
     }
 
     func leaveShop() {
         run.shop?.pendingID = nil
-        var msg = "상점을 나왔어요."
+        var msg = L("상점을 나왔어요.", "You left the shop.")
         // 이자: 남은 골드의 10% (최대 물가 ×10)
         if run.hasPerk(.interest) && run.gold > 0 {
             let g = min((run.gold * 0.1).rounded(), (10 * run.econ).rounded())
-            if g > 0 { run.gold += g; run.goldTotal += g; msg += " 이자 +\(Fmt.n(g))골드." }
+            if g > 0 { run.gold += g; run.goldTotal += g; msg += L(" 이자 +\(Fmt.n(g))골드.", " Interest +\(Fmt.n(g)) gold.") }
         }
         afterNode(msg)
     }
@@ -943,17 +945,17 @@ final class GameSession {
     func describe(_ c: Card) -> String {
         var parts = [c.label]
         if let t = c.tr {
-            parts.append("\(t.name) 변신: 계산 값 \(Fmt.n(c.numVal))\(c.v > t.cap ? " (변신은 \(t.cap)까지만 적용)" : "")")
+            parts.append(L("\(t.name) 변신: 계산 값 \(Fmt.n(c.numVal))\(c.v > t.cap ? " (변신은 \(t.cap)까지만 적용)" : "")", "\(t.name) transformation: counts as \(Fmt.n(c.numVal))\(c.v > t.cap ? " (n is capped at \(t.cap))" : "")"))
         }
-        if c.up > 0 { parts.append("강화로 +\(c.up * 3)") }
+        if c.up > 0 { parts.append(L("강화로 +\(c.up * 3)", "+\(c.up * 3) from upgrades")) }
         for e in c.enh {
             var s = "\(e.name): \(e.desc)"
-            if e == .stack { s += " (현재 +\(Fmt.n(c.bonus)))" }
-            if e == .fire { s += " (지금 +\(Fmt.n(run.fireBonus)))" }
+            if e == .stack { s += L(" (현재 +\(Fmt.n(c.bonus)))", " (now +\(Fmt.n(c.bonus)))") }
+            if e == .fire { s += L(" (지금 +\(Fmt.n(run.fireBonus)))", " (now +\(Fmt.n(run.fireBonus)))") }
             parts.append(s)
         }
-        if c.op == .mul { parts.append("곱셈 카드는 강화할 수 없어요") }
-        if c.op == .pow { parts.append("거듭제곱: 왼쪽 수를 오른쪽 수만큼 거듭제곱해요. 지수는 \(Int(CFG.powCap))까지이고 강화할 수 없어요") }
+        if c.op == .mul { parts.append(L("곱셈 카드는 강화할 수 없어요", "× cards can't be enhanced")) }
+        if c.op == .pow { parts.append(L("거듭제곱: 왼쪽 수를 오른쪽 수만큼 거듭제곱해요. 지수는 \(Int(CFG.powCap))까지이고 강화할 수 없어요", "Power: raises the left number to the right number. The exponent is capped at \(Int(CFG.powCap)) and it can't be enhanced")) }
         return parts.joined(separator: ". ")
     }
 }

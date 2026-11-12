@@ -53,32 +53,35 @@ struct CatalogEntry: Identifiable {
 enum CardCatalog {
     static let maxNumber = 15
 
-    static let entries: [CatalogEntry] = {
+    /// 지금 언어로 만든 도감 항목 (언어를 바꾸면 다시 만들어요)
+    static var entries: [CatalogEntry] {
         var list: [CatalogEntry] = []
         for n in 1...maxNumber {
-            let desc = n <= 9 ? "기본 덱에 들어 있는 숫자예요" : "상점이나 강화로 얻는 큰 숫자예요"
-            list.append(CatalogEntry(key: "num-\(n)", title: "숫자 \(n)", desc: desc, sample: .number(-n, n)))
+            let desc = n <= 9 ? L("기본 덱에 들어 있는 숫자예요", "A number from the starting deck") : L("상점이나 강화로 얻는 큰 숫자예요", "A big number from shops or upgrades")
+            list.append(CatalogEntry(key: "num-\(n)", title: L("숫자 \(n)", "Number \(n)"), desc: desc, sample: .number(-n, n)))
         }
         for op in [Op.add, .sub, .mul, .div, .pow] {
-            let desc = op == .mul ? "강력한 대신 강화할 수 없어요"
-                : op == .pow ? "× 카드가 진화한 거듭제곱 카드예요. 지수는 \(Int(CFG.powCap))까지 (6막부터)" : "기본 기호 카드예요"
-            list.append(CatalogEntry(key: "op-\(op.rawValue)", title: "\(op.symbol) 카드", desc: desc, sample: .symbol(-100 - op.order, op)))
+            let desc = op == .mul ? L("강력한 대신 강화할 수 없어요", "Powerful, but can't be enhanced")
+                : op == .pow ? L("× 카드가 진화한 거듭제곱 카드예요. 지수는 \(Int(CFG.powCap))까지 (6막부터)", "A power card evolved from a × card. Exponent capped at \(Int(CFG.powCap)) (from Act 6)")
+                : L("기본 기호 카드예요", "A basic operator card")
+            list.append(CatalogEntry(key: "op-\(op.rawValue)", title: L("\(op.symbol) 카드", "\(op.symbol) card"), desc: desc, sample: .symbol(-100 - op.order, op)))
         }
         for (i, e) in Enh.allCases.enumerated() {
             var sample: Card = e.isOpPerk ? .symbol(-200 - i, e.op ?? .add) : .number(-200 - i, 7)
             sample.enh = [e]
             if e == .stack { sample.bonus = CFG.stackStep }
-            let target = e.op.map { " (\($0.symbol) 카드)" } ?? ""
-            list.append(CatalogEntry(key: "enh-\(e.rawValue)", title: "\(e.name) 강화\(target)", desc: e.desc, sample: sample))
+            let target = e.op.map { L(" (\($0.symbol) 카드)", " (\($0.symbol) card)") } ?? ""
+            list.append(CatalogEntry(key: "enh-\(e.rawValue)", title: L("\(e.name) 강화\(target)", "\(e.name) enhancement\(target)"), desc: e.desc, sample: sample))
         }
         for t in Transform.allCases {
             var sample: Card = .number(-300 - t.index, 5)
             sample.tr = t
-            let when = t.isSpecial ? "\(t.act)막부터 보스를 잡으면 나와요" : "\(t.act)막부터 나와요"
-            list.append(CatalogEntry(key: "tr-\(t.rawValue)", title: "\(t.name) 변신", desc: "\(when). 숫자 n을 \(t.text("n"))으로 계산해요 (n은 \(t.cap)까지)", sample: sample))
+            let desc = L("\(t.act)막부터 나와요. 숫자 n을 \(t.text("n"))으로 계산해요 (n은 \(t.cap)까지)",
+                         "Appears from Act \(t.act). Counts number n as \(t.text("n")) (n up to \(t.cap))")
+            list.append(CatalogEntry(key: "tr-\(t.rawValue)", title: L("\(t.name) 변신", "\(t.name) transformation"), desc: desc, sample: sample))
         }
         return list
-    }()
+    }
 
     static let allKeys = Set(entries.map(\.key))
 
@@ -120,16 +123,16 @@ enum MetaPerk: String, CaseIterable, Identifiable {
 
     var name: String {
         switch self {
-        case .restock: "재입고"
-        case .allowance: "비상금"
-        case .coupon: "할인권"
-        case .reroll: "다시 뽑기"
-        case .sharpen: "연필 깎기"
-        case .study: "예습"
-        case .interest: "이자"
-        case .clover: "네잎클로버"
-        case .hunter: "정예 사냥꾼"
-        case .grit: "뒷심"
+        case .restock: L("재입고", "Restock")
+        case .allowance: L("비상금", "Allowance")
+        case .coupon: L("할인권", "Coupon")
+        case .reroll: L("다시 뽑기", "Reroll")
+        case .sharpen: L("연필 깎기", "Sharpen")
+        case .study: L("예습", "Study")
+        case .interest: L("이자", "Interest")
+        case .clover: L("네잎클로버", "Four-leaf Clover")
+        case .hunter: L("정예 사냥꾼", "Elite Hunter")
+        case .grit: L("뒷심", "Second Wind")
         }
     }
 
@@ -151,23 +154,26 @@ enum MetaPerk: String, CaseIterable, Identifiable {
 
     var desc: String {
         switch self {
-        case .restock: "상점에서 막마다 한 번 무료로 물건을 새로 들여요"
-        case .allowance: "막을 시작할 때 골드를 받아요 (물가 ×12)"
-        case .coupon: "막마다 상점 첫 구매가 30% 싸요"
-        case .reroll: "막마다 한 번 특전 선택지를 새로 뽑아요"
-        case .sharpen: "막마다 한 번 전투 중 손패를 모두 새로 뽑아요 (버리기를 쓰지 않아요)"
-        case .study: "전투 첫 손패에 숫자 카드가 4장 이상 들어와요"
-        case .interest: "상점을 나갈 때 남은 골드의 10%를 받아요 (최대 물가 ×10)"
-        case .clover: "행운 강화가 터질 확률이 25%에서 35%로 올라요"
-        case .hunter: "정예를 잡으면 특전 선택지가 4개씩 나와요"
-        case .grit: "막마다 한 번, 계산 기회를 다 썼을 때 체력이 20% 이하로 남았으면 한 번 더 계산해요"
+        case .restock: L("상점에서 막마다 한 번 무료로 물건을 새로 들여요", "Once per act, refresh the shop for free")
+        case .allowance: L("막을 시작할 때 골드를 받아요 (물가 ×12)", "Gain gold at the start of each act (price level ×12)")
+        case .coupon: L("막마다 상점 첫 구매가 30% 싸요", "Your first shop purchase each act is 30% off")
+        case .reroll: L("막마다 한 번 특전 선택지를 새로 뽑아요", "Once per act, reroll your upgrade choices")
+        case .sharpen: L("막마다 한 번 전투 중 손패를 모두 새로 뽑아요 (버리기를 쓰지 않아요)", "Once per act, redraw your whole hand in a fight (doesn't use a discard)")
+        case .study: L("전투 첫 손패에 숫자 카드가 4장 이상 들어와요", "Your first hand in each fight has at least 4 number cards")
+        case .interest: L("상점을 나갈 때 남은 골드의 10%를 받아요 (최대 물가 ×10)", "Gain 10% of your remaining gold when leaving a shop (up to price level ×10)")
+        case .clover: L("행운 강화가 터질 확률이 25%에서 35%로 올라요", "Luck triggers 35% of the time instead of 25%")
+        case .hunter: L("정예를 잡으면 특전 선택지가 4개씩 나와요", "Defeating an elite offers 4 upgrades instead of 3")
+        case .grit: L("막마다 한 번, 계산 기회를 다 썼을 때 체력이 20% 이하로 남았으면 한 번 더 계산해요", "Once per act, if you run out of calcs with the enemy at 20% HP or less, calculate once more")
         }
     }
 
     /// 막마다 한 번만 쓰는 퍽
     var oncePerAct: Bool { [.restock, .coupon, .reroll, .sharpen, .grit].contains(self) }
 
-    static func depthText(_ d: Int) -> String { "\((d + CFG.actLen - 1) / CFG.actLen)막 \((d - 1) % CFG.actLen + 1)층" }
+    static func depthText(_ d: Int) -> String {
+        let act = (d + CFG.actLen - 1) / CFG.actLen, floor = (d - 1) % CFG.actLen + 1
+        return L("\(act)막 \(floor)층", "Act \(act), Floor \(floor)")
+    }
 }
 
 // MARK: - 업적
@@ -175,31 +181,35 @@ enum MetaPerk: String, CaseIterable, Identifiable {
 struct Achievement: Identifiable {
     let id: String
     let icon: String
-    let title: String
-    let desc: String
+    /// (한국어, 영어)
+    let titles: (String, String)
+    let descs: (String, String)
     let isMet: (SlotProfile) -> Bool
+
+    var title: String { L(titles.0, titles.1) }
+    var desc: String { L(descs.0, descs.1) }
 }
 
 enum Achievements {
     static let all: [Achievement] = [
-        Achievement(id: "firstKill", icon: "👾", title: "첫 계산", desc: "몹을 처음으로 처치하기") { $0.stats.kills >= 1 },
-        Achievement(id: "elite", icon: "💀", title: "정예 사냥꾼", desc: "정예 몹 처치하기") { $0.stats.eliteKills >= 1 },
-        Achievement(id: "boss", icon: "👑", title: "1막 돌파", desc: "보스 처치하기") { $0.stats.bossKills >= 1 },
-        Achievement(id: "act3", icon: "🧭", title: "깊은 곳으로", desc: "3막에 도달하기") { $0.stats.maxAct >= 3 },
-        Achievement(id: "act5", icon: "🏔️", title: "팩토리얼의 땅", desc: "5막에 도달하기") { $0.stats.maxAct >= 5 },
-        Achievement(id: "ascend", icon: "🌌", title: "차원 상승", desc: "로그 단계(\(CFG.logAct)막)에 도달하기") { $0.stats.maxAct >= CFG.logAct },
-        Achievement(id: "hit1k", icon: "💥", title: "천 단위", desc: "한 방에 1,000 이상 피해 주기") { $0.stats.maxHit >= 1_000 },
-        Achievement(id: "hit100k", icon: "🔥", title: "십만 대군", desc: "한 방에 10만 이상 피해 주기") { $0.stats.maxHit >= 100_000 },
-        Achievement(id: "hit1e8", icon: "🌋", title: "억 소리 나는", desc: "한 방에 1억 이상 피해 주기") { $0.stats.maxHit >= 1e8 },
-        Achievement(id: "oneShot", icon: "🎯", title: "일격필살", desc: "첫 계산 한 번으로 몹 처치하기") { $0.stats.oneShots >= 1 },
-        Achievement(id: "overkill", icon: "📈", title: "과잉 계산", desc: "적 체력의 200% 이상 초과 피해 주기") { $0.stats.bigOverkills >= 1 },
-        Achievement(id: "luck", icon: "🍀", title: "행운의 숫자", desc: "행운 ×5 터뜨리기") { $0.stats.luckProcs >= 1 },
-        Achievement(id: "rich", icon: "💰", title: "부자 수학자", desc: "골드 1,000 이상 모으기") { $0.stats.maxGold >= 1_000 },
-        Achievement(id: "shopper", icon: "🛒", title: "단골손님", desc: "상점에서 카드 5장 사기 (누적)") { $0.stats.cardsBought >= 5 },
-        Achievement(id: "kills100", icon: "⚔️", title: "백전노장", desc: "몹 100마리 처치하기 (누적)") { $0.stats.kills >= 100 },
-        Achievement(id: "runs10", icon: "📚", title: "끈기", desc: "게임 10판 끝내기") { $0.stats.runsFinished >= 10 },
-        Achievement(id: "collectHalf", icon: "🗂️", title: "수집가", desc: "카드 도감 절반 채우기") { $0.collectionProgress >= 0.5 },
-        Achievement(id: "collectAll", icon: "🏆", title: "완벽한 도감", desc: "카드 도감 모두 채우기") { $0.collectionProgress >= 1 }
+        Achievement(id: "firstKill", icon: "👾", titles: ("첫 계산", "First Calculation"), descs: ("몹을 처음으로 처치하기", "Defeat your first monster")) { $0.stats.kills >= 1 },
+        Achievement(id: "elite", icon: "💀", titles: ("정예 사냥꾼", "Elite Hunter"), descs: ("정예 몹 처치하기", "Defeat an elite")) { $0.stats.eliteKills >= 1 },
+        Achievement(id: "boss", icon: "👑", titles: ("1막 돌파", "Act 1 Cleared"), descs: ("보스 처치하기", "Defeat a boss")) { $0.stats.bossKills >= 1 },
+        Achievement(id: "act3", icon: "🧭", titles: ("깊은 곳으로", "Going Deeper"), descs: ("3막에 도달하기", "Reach Act 3")) { $0.stats.maxAct >= 3 },
+        Achievement(id: "act5", icon: "🏔️", titles: ("팩토리얼의 땅", "Land of Factorials"), descs: ("5막에 도달하기", "Reach Act 5")) { $0.stats.maxAct >= 5 },
+        Achievement(id: "ascend", icon: "🌌", titles: ("차원 상승", "Dimension Ascent"), descs: ("로그 단계(\(CFG.logAct)막)에 도달하기", "Reach the log stage (Act \(CFG.logAct))")) { $0.stats.maxAct >= CFG.logAct },
+        Achievement(id: "hit1k", icon: "💥", titles: ("천 단위", "Four Digits"), descs: ("한 방에 1,000 이상 피해 주기", "Deal 1,000+ damage in one hit")) { $0.stats.maxHit >= 1_000 },
+        Achievement(id: "hit100k", icon: "🔥", titles: ("십만 대군", "Six Figures"), descs: ("한 방에 10만 이상 피해 주기", "Deal 100,000+ damage in one hit")) { $0.stats.maxHit >= 100_000 },
+        Achievement(id: "hit1e8", icon: "🌋", titles: ("억 소리 나는", "Hundred Million"), descs: ("한 방에 1억 이상 피해 주기", "Deal 100,000,000+ damage in one hit")) { $0.stats.maxHit >= 1e8 },
+        Achievement(id: "oneShot", icon: "🎯", titles: ("일격필살", "One-Shot"), descs: ("첫 계산 한 번으로 몹 처치하기", "Defeat a monster with your first calculation")) { $0.stats.oneShots >= 1 },
+        Achievement(id: "overkill", icon: "📈", titles: ("과잉 계산", "Overkill"), descs: ("적 체력의 200% 이상 초과 피해 주기", "Deal 200%+ overkill damage")) { $0.stats.bigOverkills >= 1 },
+        Achievement(id: "luck", icon: "🍀", titles: ("행운의 숫자", "Lucky Number"), descs: ("행운 ×5 터뜨리기", "Trigger Luck ×5")) { $0.stats.luckProcs >= 1 },
+        Achievement(id: "rich", icon: "💰", titles: ("부자 수학자", "Rich Mathematician"), descs: ("골드 1,000 이상 모으기", "Hold 1,000+ gold")) { $0.stats.maxGold >= 1_000 },
+        Achievement(id: "shopper", icon: "🛒", titles: ("단골손님", "Regular"), descs: ("상점에서 카드 5장 사기 (누적)", "Buy 5 cards in shops (total)")) { $0.stats.cardsBought >= 5 },
+        Achievement(id: "kills100", icon: "⚔️", titles: ("백전노장", "Veteran"), descs: ("몹 100마리 처치하기 (누적)", "Defeat 100 monsters (total)")) { $0.stats.kills >= 100 },
+        Achievement(id: "runs10", icon: "📚", titles: ("끈기", "Persistence"), descs: ("게임 10판 끝내기", "Finish 10 runs")) { $0.stats.runsFinished >= 10 },
+        Achievement(id: "collectHalf", icon: "🗂️", titles: ("수집가", "Collector"), descs: ("카드 도감 절반 채우기", "Fill half of the collection")) { $0.collectionProgress >= 0.5 },
+        Achievement(id: "collectAll", icon: "🏆", titles: ("완벽한 도감", "Complete Collection"), descs: ("카드 도감 모두 채우기", "Fill the whole collection")) { $0.collectionProgress >= 1 }
     ]
 }
 

@@ -50,10 +50,14 @@ struct FightView: View {
                 .zIndex(handOnTop ? 1 : 0)
             actions(f)
             RulesBox(lines: [
-                "손패를 손가락으로 훑으면 카드가 커져요. 손을 떼면 그 카드를 수식 칸에 놓아요. 아래로 끌어내리면 취소돼요.",
-                "숫자 3장과 기호 2장까지 번갈아 놓아 수식을 만들어요. 왼쪽부터 순서대로 계산하고, 결과가 음수면 0이에요.",
-                "계산 결과만큼 몹에게 피해를 줘요. 계산 기회 안에 체력을 0으로 만들면 이겨요. 남은 계산과 버리기는 골드로 바뀌니 빨리 끝낼수록 이득이에요.",
-                "버리기는 수식 칸에 올린 카드를 버리고 새로 뽑아요. 카드는 숫자 덱과 기호 덱을 합친 곳에서 무작위로 뽑혀요."
+                L("손패를 손가락으로 훑으면 카드가 커져요. 손을 떼면 그 카드를 수식 칸에 놓아요. 아래로 끌어내리면 취소돼요.",
+                  "Slide your finger across your hand to lift a card. Let go to place it in the equation. Drag down to cancel."),
+                L("숫자 3장과 기호 2장까지 번갈아 놓아 수식을 만들어요. 왼쪽부터 순서대로 계산하고, 결과가 음수면 0이에요.",
+                  "Alternate up to 3 numbers and 2 operators to build an equation. It's worked out left to right, and a negative result counts as 0."),
+                L("계산 결과만큼 몹에게 피해를 줘요. 계산 기회 안에 체력을 0으로 만들면 이겨요. 남은 계산과 버리기는 골드로 바뀌니 빨리 끝낼수록 이득이에요.",
+                  "The result is your damage. Bring the monster's HP to zero within your calcs to win. Unused calcs and discards turn into gold, so finishing early pays."),
+                L("버리기는 수식 칸에 올린 카드를 버리고 새로 뽑아요. 카드는 숫자 덱과 기호 덱을 합친 곳에서 무작위로 뽑혀요.",
+                  "Discard throws away the cards in the equation and draws new ones. Cards are drawn at random from the number and operator decks combined.")
             ])
         }
     }
@@ -63,7 +67,7 @@ struct FightView: View {
     private func status(_ f: FightState, node: MapNode) -> some View {
         let left = max(0, f.hpMax - (f.score - session.hiddenDamage))
         let title = HStack(alignment: .firstTextBaseline) {
-            Text(node.name).font(.hand(26)).foregroundStyle(Theme.ink)
+            Text(MobNames.display(node.name)).font(.hand(26)).foregroundStyle(Theme.ink)
             if node.type != .mob {
                 Text(node.type.name)
                     .font(.hand(16))
@@ -73,7 +77,7 @@ struct FightView: View {
                     .rotationEffect(.degrees(-6))
             }
         }
-        let hp = Text("체력 \(Text("\(session.run.hpText(left)) / \(session.run.hpText(f.hpMax))").font(.hand(22)).foregroundStyle(Theme.red))")
+        let hp = Text("\(L("체력", "HP")) \(Text("\(session.run.hpText(left)) / \(session.run.hpText(f.hpMax))").font(.hand(22)).foregroundStyle(Theme.red))")
             .font(.subheadline)
             .foregroundStyle(Theme.muted)
             .lineLimit(1)
@@ -103,10 +107,10 @@ struct FightView: View {
             .clipShape(.rect(cornerRadius: 6))
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.ink, lineWidth: 2))
             metaLayout {
-                meta("계산", "\(f.playsLeft)번")
-                meta("버리기", "\(f.discLeft)번")
-                meta("숫자 덱", "\(f.numDraw.count)장")
-                meta("기호 덱", "\(f.opDraw.count)장")
+                meta(L("계산", "Calcs"), L("\(f.playsLeft)번", "\(f.playsLeft)"))
+                meta(L("버리기", "Discards"), L("\(f.discLeft)번", "\(f.discLeft)"))
+                meta(L("숫자 덱", "Numbers"), L("\(f.numDraw.count)장", "\(f.numDraw.count)"))
+                meta(L("기호 덱", "Operators"), L("\(f.opDraw.count)장", "\(f.opDraw.count)"))
             }
             .font(.caption)
             .foregroundStyle(Theme.muted)
@@ -145,7 +149,7 @@ struct FightView: View {
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.ink, lineWidth: 2))
         .overlay(alignment: .trailing) {
             if session.showStamp {
-                Text("처치")
+                Text(L("처치", "Defeated!"))
                     .font(.hand(40))
                     .foregroundStyle(Theme.red)
                     .padding(.horizontal, 14)
@@ -198,7 +202,7 @@ struct FightView: View {
                     // 손패에서 들려 커진 크기(1.28배)에서 출발해 제자리 크기로 줄어들어요
                     .transition(.asymmetric(insertion: .scale(scale: 1.28, anchor: UnitPoint(x: 0.5, y: 0.7)), removal: .opacity))
                 } else {
-                    GhostCard(label: i % 2 == 0 ? "숫자" : "기호")
+                    GhostCard(label: i % 2 == 0 ? L("숫자", "Number") : L("기호", "Op"))
                 }
         }
     }
@@ -210,7 +214,7 @@ struct FightView: View {
                 Text(msg).font(.subheadline).foregroundStyle(Theme.muted)
             } else if v.ok {
                 let r = session.evaluate(sel, roll: false)
-                Text("= \(session.run.dmgText(r.final))\(r.hasLuck ? "  (행운 미포함)" : "")")
+                Text("= \(session.run.dmgText(r.final))\(r.hasLuck ? L("  (행운 미포함)", "  (without Luck)") : "")")
                     .font(.hand(22)).foregroundStyle(Theme.ink)
             } else if !session.busy && !(wide && sel.isEmpty) {
                 // 가로 화면에서는 빈 수식 칸 안내("손패를 누르거나…")를 생략해요
@@ -283,17 +287,17 @@ struct FightView: View {
         let canPlay = !session.busy && session.validity(session.selectedCards).ok && f.playsLeft > 0
         let canDiscard = !session.busy && !f.sel.isEmpty && f.discLeft > 0
         let discard = Button { Task { await session.discard() } } label: {
-            actionLabel("버리기", total: session.run.discards, left: f.discLeft)
+            actionLabel(L("버리기", "Discard"), total: session.run.discards, left: f.discLeft)
         }
         .buttonStyle(MainButtonStyle(filled: false))
         .disabled(!canDiscard)
-        .accessibilityLabel("버리기, \(f.discLeft)번 남음")
+        .accessibilityLabel(L("버리기, \(f.discLeft)번 남음", "Discard, \(f.discLeft) left"))
         let play = Button { Task { await session.play() } } label: {
-            actionLabel("계산하기", total: session.run.plays, left: f.playsLeft)
+            actionLabel(L("계산하기", "Calculate"), total: session.run.plays, left: f.playsLeft)
         }
         .buttonStyle(MainButtonStyle())
         .disabled(!canPlay)
-        .accessibilityLabel("계산하기, \(f.playsLeft)번 남음")
+        .accessibilityLabel(L("계산하기, \(f.playsLeft)번 남음", "Calculate, \(f.playsLeft) left"))
         return VStack(alignment: .leading, spacing: 8) {
             if wide {
                 // 가로: 왼쪽 칸 아래에 세로로 쌓아요
@@ -312,7 +316,7 @@ struct FightView: View {
             if session.run.hasPerk(.sharpen) {
                 // 연필 깎기 퍽: 막마다 한 번 손패를 모두 새로
                 let ready = session.run.perkReady(.sharpen)
-                Button("✏️ 연필 깎기: 손패 새로 뽑기 \(ready ? "(이번 막 1번)" : "(이번 막에 씀)")") { session.sharpen() }
+                Button(L("✏️ 연필 깎기: 손패 새로 뽑기 \(ready ? "(이번 막 1번)" : "(이번 막에 씀)")", "✏️ Sharpen: redraw your hand \(ready ? "(once this act)" : "(used this act)")")) { session.sharpen() }
                     .buttonStyle(ChipButtonStyle())
                     .disabled(session.busy || !ready)
                     .opacity(session.busy || !ready ? 0.4 : 1)
@@ -451,7 +455,7 @@ struct FanHand: View {
         let freshOrder = cards.filter { session.freshIDs.contains($0.id) }.map(\.id)
         ZStack(alignment: .topLeading) {
             if cards.isEmpty {
-                Text("손패가 비었어요")
+                Text(L("손패가 비었어요", "Your hand is empty"))
                     .font(.footnote)
                     .foregroundStyle(Theme.muted)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -594,7 +598,7 @@ struct DivisorHalo: ViewModifier {
                 }
             }
             .animation(.easeOut(duration: 0.2), value: active)
-            .accessibilityHint(active ? "정확 나눗셈이 발동해요" : "")
+            .accessibilityHint(active ? L("정확 나눗셈이 발동해요", "Exact division triggers") : "")
     }
 }
 

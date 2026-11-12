@@ -18,7 +18,23 @@ struct SoundButton: View {
                 .opacity(on ? 1 : 0.45)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("소리 설정")
+        .accessibilityLabel(L("소리 설정", "Sound settings"))
+    }
+}
+
+/// 언어 바꾸기 버튼. 바꿀 언어를 보여줘요 (한국어일 때 EN, 영어일 때 한)
+struct LangButton: View {
+    var body: some View {
+        Button { Lang.shared.toggle() } label: {
+            Text(Lang.shared.isKorean ? "EN" : "한")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(Theme.ink)
+                .frame(width: 32, height: 32)
+                .background(Theme.card, in: .circle)
+                .overlay(Circle().stroke(Theme.ink, lineWidth: 2))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Language / 언어")
     }
 }
 
@@ -28,9 +44,9 @@ struct SoundSettingsSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SheetHeader(title: "소리", subtitle: "이 기기에서만 기억해요.") { dismiss() }
-            row("배경음", "잔잔한 모눈종이 음악", $sound.musicOn)
-            row("효과음", "카드, 계산, 동전, 종소리", $sound.sfxOn)
+            SheetHeader(title: L("소리", "Sound"), subtitle: L("이 기기에서만 기억해요.", "Saved on this device only.")) { dismiss() }
+            row(L("배경음", "Music"), L("잔잔한 모눈종이 음악", "Calm notebook music"), $sound.musicOn)
+            row(L("효과음", "Sound effects"), L("카드, 계산, 동전, 종소리", "Cards, calculations, coins, bells"), $sound.sfxOn)
             Spacer(minLength: 0)
         }
         .padding(18)

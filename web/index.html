@@ -275,6 +275,8 @@ details p{margin:.4em 0}
 /* 소리 버튼과 설정 */
 .iconbtn{flex:none; width:32px; height:32px; border:2px solid var(--ink); border-radius:50%; background:var(--card); color:var(--ink); display:grid; place-items:center; cursor:pointer; padding:0; font-size:14px; line-height:1}
 .iconbtn.off{opacity:.45}
+.iconbtn.lang{font-family:system-ui,sans-serif; font-size:11px; font-weight:700; letter-spacing:-.02em}
+.menu .iconbtn.lang{right:58px}
 .menu .iconbtn{position:absolute; right:20px; top:20px}
 .menu{position:relative}
 .toggle{display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; padding:12px; background:var(--card); border:2px solid var(--edge); border-radius:10px; cursor:pointer; text-align:left}
@@ -379,6 +381,11 @@ const CFG = {
 };
 const VERSION = '1.0.0-beta.2';
 
+// ===== 언어 =====
+// 기기 언어가 한국어면 한국어, 아니면 영어. 고른 언어는 기억해요
+let LANG = (() => { try { const v = localStorage.getItem('sempan-lang'); if (v === 'ko' || v === 'en') return v; } catch (e) {} return (navigator.language || '').toLowerCase().startsWith('ko') ? 'ko' : 'en'; })();
+const T = (ko, en) => LANG === 'en' ? en : ko;
+
 // Swift의 rounded()처럼 0에서 먼 쪽으로 반올림해요
 const rnd = x => Math.sign(x) * Math.round(Math.abs(x));
 const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -394,13 +401,13 @@ const OP_ORDER = '+-/*^';
 // 강화할 수 없는 기호 (강력한 대신)
 const PLAIN_OPS = ['*', '^'];
 const ENH = {
-  gold:  { badge: '×2',  name: '황금', desc: '수식에 쓰면 최종 결과 ×2', value: 18 },
-  fire:  { badge: '+',   name: '불꽃', desc: '수식에 쓰면 최종 결과에 더해요. 적 체력과 함께 커져요', value: 8 },
-  luck:  { badge: '?×5', name: '행운', desc: '수식에 쓰면 25% 확률로 최종 결과 ×5', value: 12 },
-  amp:   { badge: '증폭', name: '증폭', desc: '오른쪽 수를 세 배로 더해요', value: 15, op: '+' },
-  stack: { badge: '적립', name: '적립', desc: `보너스를 함께 더하고, 쓸 때마다 보너스가 ${CFG.stackStep}×물가만큼 영구히 커져요`, value: 15, op: '+' },
-  flip:  { badge: '역전', name: '역전', desc: '빼서 음수가 되면 빼는 대신 두 수를 더하고 ×4', value: 15, op: '-' },
-  exact: { badge: '정확', name: '정확', desc: '나누어떨어지면 나누는 대신 두 수를 곱하고 ×2', value: 16, op: '/' }
+  gold:  { badge: '×2',  get name() { return T('황금', 'Gold'); }, get desc() { return T('수식에 쓰면 최종 결과 ×2', 'Doubles the final result when used in an equation'); }, value: 18 },
+  fire:  { badge: '+',   get name() { return T('불꽃', 'Fire'); }, get desc() { return T('수식에 쓰면 최종 결과에 더해요. 적 체력과 함께 커져요', 'Adds a bonus to the final result. Grows with enemy HP'); }, value: 8 },
+  luck:  { badge: '?×5', get name() { return T('행운', 'Luck'); }, get desc() { return T('수식에 쓰면 25% 확률로 최종 결과 ×5', '25% chance to multiply the final result by 5'); }, value: 12 },
+  amp:   { get badge() { return T('증폭', 'AMP'); }, get name() { return T('증폭', 'Amplify'); }, get desc() { return T('오른쪽 수를 세 배로 더해요', 'Adds the right-hand number three times'); }, value: 15, op: '+' },
+  stack: { get badge() { return T('적립', 'ACC'); }, get name() { return T('적립', 'Accumulate'); }, get desc() { return T(`보너스를 함께 더하고, 쓸 때마다 보너스가 ${CFG.stackStep}×물가만큼 영구히 커져요`, `Adds a bonus that grows by ${CFG.stackStep}× the price level every time it is used`); }, value: 15, op: '+' },
+  flip:  { get badge() { return T('역전', 'REV'); }, get name() { return T('역전', 'Reversal'); }, get desc() { return T('빼서 음수가 되면 빼는 대신 두 수를 더하고 ×4', 'If the subtraction goes negative, adds the two numbers instead and multiplies by 4'); }, value: 15, op: '-' },
+  exact: { get badge() { return T('정확', 'EXACT'); }, get name() { return T('정확', 'Exact'); }, get desc() { return T('나누어떨어지면 나누는 대신 두 수를 곱하고 ×2', 'If it divides evenly, multiplies the two numbers instead and doubles the result'); }, value: 16, op: '/' }
 };
 const ENH_KEYS = Object.keys(ENH);
 const OP_PERKS = ['amp', 'stack', 'flip', 'exact'];
@@ -413,13 +420,13 @@ const superfact = n => { let r = 1; for (let k = 1; k <= n; k++) r *= fact(k); r
 const hyperfact = n => { let r = 1; for (let k = 1; k <= n; k++) r *= Math.pow(k, k); return r; };
 // 숫자 변신 강화. 막마다 하나씩 해금. cap은 변신에 넣는 값의 상한
 const TR = [
-  { key: 'sq',    name: '제곱',          act: 2, cap: 20, value: 14, f: n => n * n,                 txt: v => `${v}²`,     face: v => `${v}<sup>2</sup>` },
-  { key: 'pow2',  name: '2의 거듭제곱',  act: 3, cap: 15, value: 22, f: n => Math.pow(2, n),        txt: v => `2^${v}`,    face: v => `2<sup>${v}</sup>` },
-  { key: 'exp',   name: '자연지수',      act: 4, cap: 12, value: 32, f: n => rnd(Math.exp(n)),      txt: v => `e^${v}`,    face: v => `e<sup>${v}</sup>` },
-  { key: 'fact',  name: '팩토리얼',      act: 5, cap: 10, value: 44, f: n => fact(Math.max(1, n)),  txt: v => `${v}!`,     face: v => `${v}!` },
-  { key: 'self',  name: '자기거듭제곱',  act: 6, cap: 9,  value: 56, f: n => Math.pow(n, n),        txt: v => `${v}^${v}`, face: v => `${v}<sup>${v}</sup>` },
-  { key: 'sfact', name: '슈퍼팩토리얼',  act: 7, cap: 7,  value: 70, f: n => superfact(n),          txt: v => `sf(${v})`,  face: v => `sf<small>(${v})</small>` },
-  { key: 'hfact', name: '하이퍼팩토리얼', act: 8, cap: 6,  value: 85, f: n => hyperfact(n),          txt: v => `H(${v})`,   face: v => `H<small>(${v})</small>` }
+  { key: 'sq',    get name() { return T('제곱', 'Square'); }, act: 2, cap: 20, value: 14, f: n => n * n,                 txt: v => `${v}²`,     face: v => `${v}<sup>2</sup>` },
+  { key: 'pow2',  get name() { return T('2의 거듭제곱', 'Power of two'); }, act: 3, cap: 15, value: 22, f: n => Math.pow(2, n),        txt: v => `2^${v}`,    face: v => `2<sup>${v}</sup>` },
+  { key: 'exp',   get name() { return T('자연지수', 'Natural exponent'); }, act: 4, cap: 12, value: 32, f: n => rnd(Math.exp(n)),      txt: v => `e^${v}`,    face: v => `e<sup>${v}</sup>` },
+  { key: 'fact',  get name() { return T('팩토리얼', 'Factorial'); }, act: 5, cap: 10, value: 44, f: n => fact(Math.max(1, n)),  txt: v => `${v}!`,     face: v => `${v}!` },
+  { key: 'self',  get name() { return T('자기거듭제곱', 'Self-power'); }, act: 6, cap: 9,  value: 56, f: n => Math.pow(n, n),        txt: v => `${v}^${v}`, face: v => `${v}<sup>${v}</sup>` },
+  { key: 'sfact', get name() { return T('슈퍼팩토리얼', 'Superfactorial'); }, act: 7, cap: 7,  value: 70, f: n => superfact(n),          txt: v => `sf(${v})`,  face: v => `sf<small>(${v})</small>` },
+  { key: 'hfact', get name() { return T('하이퍼팩토리얼', 'Hyperfactorial'); }, act: 8, cap: 6,  value: 85, f: n => hyperfact(n),          txt: v => `H(${v})`,   face: v => `H<small>(${v})</small>` }
 ];
 
 // ===== 큰 수 =====
@@ -482,7 +489,7 @@ const numVal = c => { const t = trOf(c); return t ? t.f(trInput(c)) : c.v; };
 const faceText = c => c.kind === 'op' ? SYM[c.op] : (trOf(c) ? trOf(c).txt(trInput(c)) : String(c.v));
 // 수식 글자: 다섯 장이면 앞의 세 장을 괄호로 묶어 계산 순서를 보여줘요
 const exprText = cs => cs.length === 5 ? `(${cs.slice(0, 3).map(faceText).join(' ')}) ${cs.slice(3).map(faceText).join(' ')}` : cs.map(faceText).join(' ');
-const cardLabel = c => c.kind === 'num' ? `숫자 ${faceText(c)}` : `${SYM[c.op]} 카드`;
+const cardLabel = c => c.kind === 'num' ? T(`숫자 ${faceText(c)}`, `Number ${faceText(c)}`) : T(`${SYM[c.op]} 카드`, `${SYM[c.op]} card`);
 function baseValue(c) {
   let v = c.kind === 'num' ? 6 + c.v : ({ '*': 30, '/': 12, '^': 45 }[c.op] || 10);
   c.enh.forEach(e => v += ENH[e].value);
@@ -496,40 +503,58 @@ const symbolCard = (id, op) => ({ id, kind: 'op', v: 0, op, enh: [], up: 0, tr: 
 // 밸런스 기준: 막마다 상점을 한 번 공짜로 재입고하는 정도의 이득
 const PERK_SLOTS = 3;
 const PERKS = [
-  { key: 'restock',   icon: '🔄', name: '재입고',     depth: 3,  desc: '상점에서 막마다 한 번 무료로 물건을 새로 들여요' },
-  { key: 'allowance', icon: '👛', name: '비상금',     depth: 6,  desc: '막을 시작할 때 골드를 받아요 (물가 ×12)' },
-  { key: 'coupon',    icon: '🎟️', name: '할인권',     depth: 10, desc: '막마다 상점 첫 구매가 30% 싸요' },
-  { key: 'reroll',    icon: '🎲', name: '다시 뽑기',  depth: 13, desc: '막마다 한 번 특전 선택지를 새로 뽑아요' },
-  { key: 'sharpen',   icon: '✏️', name: '연필 깎기',  depth: 16, desc: '막마다 한 번 전투 중 손패를 모두 새로 뽑아요 (버리기를 쓰지 않아요)' },
-  { key: 'study',     icon: '📖', name: '예습',       depth: 20, desc: '전투 첫 손패에 숫자 카드가 4장 이상 들어와요' },
-  { key: 'interest',  icon: '🏦', name: '이자',       depth: 25, desc: '상점을 나갈 때 남은 골드의 10%를 받아요 (최대 물가 ×10)' },
-  { key: 'clover',    icon: '🍀', name: '네잎클로버', depth: 30, desc: '행운 강화가 터질 확률이 25%에서 35%로 올라요' },
-  { key: 'hunter',    icon: '🏹', name: '정예 사냥꾼', depth: 40, desc: '정예를 잡으면 특전 선택지가 4개씩 나와요' },
-  { key: 'grit',      icon: '💪', name: '뒷심',       depth: 50, desc: '막마다 한 번, 계산 기회를 다 썼을 때 체력이 20% 이하로 남았으면 한 번 더 계산해요' }
+  { key: 'restock', icon: '🔄', depth: 3, get name() { return T('재입고', "Restock"); }, get desc() { return T('상점에서 막마다 한 번 무료로 물건을 새로 들여요', "Once per act, refresh the shop for free"); } },
+  { key: 'allowance', icon: '👛', depth: 6, get name() { return T('비상금', "Allowance"); }, get desc() { return T('막을 시작할 때 골드를 받아요 (물가 ×12)', "Gain gold at the start of each act (price level ×12)"); } },
+  { key: 'coupon', icon: '🎟️', depth: 10, get name() { return T('할인권', "Coupon"); }, get desc() { return T('막마다 상점 첫 구매가 30% 싸요', "Your first shop purchase each act is 30% off"); } },
+  { key: 'reroll', icon: '🎲', depth: 13, get name() { return T('다시 뽑기', "Reroll"); }, get desc() { return T('막마다 한 번 특전 선택지를 새로 뽑아요', "Once per act, reroll your upgrade choices"); } },
+  { key: 'sharpen', icon: '✏️', depth: 16, get name() { return T('연필 깎기', "Sharpen"); }, get desc() { return T('막마다 한 번 전투 중 손패를 모두 새로 뽑아요 (버리기를 쓰지 않아요)', "Once per act, redraw your whole hand in a fight (doesn't use a discard)"); } },
+  { key: 'study', icon: '📖', depth: 20, get name() { return T('예습', "Study"); }, get desc() { return T('전투 첫 손패에 숫자 카드가 4장 이상 들어와요', "Your first hand in each fight has at least 4 number cards"); } },
+  { key: 'interest', icon: '🏦', depth: 25, get name() { return T('이자', "Interest"); }, get desc() { return T('상점을 나갈 때 남은 골드의 10%를 받아요 (최대 물가 ×10)', "Gain 10% of your remaining gold when leaving a shop (up to price level ×10)"); } },
+  { key: 'clover', icon: '🍀', depth: 30, get name() { return T('네잎클로버', "Four-leaf Clover"); }, get desc() { return T('행운 강화가 터질 확률이 25%에서 35%로 올라요', "Luck triggers 35% of the time instead of 25%"); } },
+  { key: 'hunter', icon: '🏹', depth: 40, get name() { return T('정예 사냥꾼', "Elite Hunter"); }, get desc() { return T('정예를 잡으면 특전 선택지가 4개씩 나와요', "Defeating an elite offers 4 upgrades instead of 3"); } },
+  { key: 'grit', icon: '💪', depth: 50, get name() { return T('뒷심', "Second Wind"); }, get desc() { return T('막마다 한 번, 계산 기회를 다 썼을 때 체력이 20% 이하로 남았으면 한 번 더 계산해요', "Once per act, if you run out of calcs with the enemy at 20% HP or less, calculate once more"); } }
 ];
 const perkOf = k => PERKS.find(p => p.key === k);
-const depthText = d => `${Math.ceil(d / CFG.actLen)}막 ${(d - 1) % CFG.actLen + 1}층`;
+const depthText = d => T(`${Math.ceil(d / CFG.actLen)}막 ${(d - 1) % CFG.actLen + 1}층`, `Act ${Math.ceil(d / CFG.actLen)}, Floor ${(d - 1) % CFG.actLen + 1}`);
 
 // ===== 지도 =====
 const NODE = {
-  mob:   { icon: '👾', name: '몹' },
-  elite: { icon: '💀', name: '정예' },
-  shop:  { icon: '🛒', name: '상점' },
-  boss:  { icon: '👑', name: '보스' }
+  mob:   { icon: '👾', get name() { return T('몹', 'Monster'); } },
+  elite: { icon: '💀', get name() { return T('정예', 'Elite'); } },
+  shop:  { icon: '🛒', get name() { return T('상점', 'Shop'); } },
+  boss:  { icon: '👑', get name() { return T('보스', 'Boss'); } }
 };
 const MOBS = {
   mob: ['계산 슬라임', '나머지 고블린', '분모 박쥐', '소수점 쥐', '괄호 거미', '오답 유령', '반올림 두더지', '약수 버섯'],
   elite: ['구구단 기사', '약분 마법사', '통분 쌍둥이', '검산 감시자'],
   boss: ['방정식 골렘', '무한소 군주', '미지수 용', '증명 거인']
 };
+// 저장된 이름은 한국어 그대로 두고, 화면에 보일 때만 바꿔요
+const MOB_EN = {
+  '계산 슬라임': 'Calc Slime', '나머지 고블린': 'Remainder Goblin', '분모 박쥐': 'Denominator Bat', '소수점 쥐': 'Decimal Rat',
+  '괄호 거미': 'Bracket Spider', '오답 유령': 'Wrong-Answer Ghost', '반올림 두더지': 'Rounding Mole', '약수 버섯': 'Divisor Mushroom',
+  '구구단 기사': 'Times-Table Knight', '약분 마법사': 'Fraction Mage', '통분 쌍둥이': 'Common-Denominator Twins', '검산 감시자': 'Checksum Sentinel',
+  '방정식 골렘': 'Equation Golem', '무한소 군주': 'Infinitesimal Lord', '미지수 용': 'Dragon of Unknowns', '증명 거인': 'Proof Giant', '상점': 'Shop'
+};
+const mobName = name => T(name, MOB_EN[name] || name);
 
 // ===== 숫자 표시: 만·억·조·경 단위로 짧게 =====
 const UNITS = [[1e16, '경'], [1e12, '조'], [1e8, '억'], [1e4, '만']];
-const grouped = n => n.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
+// 영어는 K·M·B·T·Qa·Qi
+const UNITS_EN = [[1e18, 'Qi'], [1e15, 'Qa'], [1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
+const locale = () => T('ko-KR', 'en-US');
+const grouped = n => n.toLocaleString(locale(), { maximumFractionDigits: 2 });
 function fmt(n) {
   if (!isFinite(n)) return '∞';
   const a = Math.abs(n);
   if (a < 1e5) return grouped(rnd(n * 100) / 100);
+  if (LANG === 'en' && a < 1e21) {
+    for (const [u, name] of UNITS_EN) if (a >= u) {
+      const x = n / u;
+      const factor = Math.pow(10, 3 - (Math.floor(Math.log10(Math.abs(x))) + 1));
+      return grouped(rnd(x * factor) / factor) + name;
+    }
+  }
   if (a >= 1e20) {
     const e = Math.floor(Math.log10(a));
     return `${(n / Math.pow(10, e)).toFixed(2)}×10^${e}`;
@@ -583,11 +608,11 @@ const R = {
   node: (run, id) => id == null ? null : run.map.flat().find(n => n.id === id),
   reachable(run, n) { const cur = R.node(run, run.curID); return cur ? cur.next.includes(n.id) : n.floor === 1; },
   unlockedTR: run => LADDER.filter(t => run.act >= t.act),
-  actName: run => R.isLog(run) ? `로그 ${run.act - CFG.logAct + 1}막` : `${run.act}막`,
-  whereText: run => run.floor === 0 ? `${R.actName(run)} 출발` : `${R.actName(run)} ${run.floor}층`,
+  actName: run => R.isLog(run) ? T(`로그 ${run.act - CFG.logAct + 1}막`, `Log Act ${run.act - CFG.logAct + 1}`) : T(`${run.act}막`, `Act ${run.act}`),
+  whereText: run => run.floor === 0 ? T(`${R.actName(run)} 출발`, `${R.actName(run)} · Start`) : T(`${R.actName(run)} ${run.floor}층`, `${R.actName(run)} · F${run.floor}`),
   // 로그 단계의 체력은 10의 거듭제곱, 피해는 자릿수예요
   hpText: (run, x) => R.isLog(run) ? `10^${fmt(x)}` : fmt(x),
-  dmgText: (run, x) => R.isLog(run) ? `${fmt(x)}자리` : fmt(x),
+  dmgText: (run, x) => R.isLog(run) ? T(`${fmt(x)}자리`, `${fmt(x)} digits`) : fmt(x),
   hasPerk: (run, k) => (run.perks || []).includes(k),
   perkReady: (run, k) => R.hasPerk(run, k) && (run.perkUsed || {})[k] !== run.act
 };
@@ -599,19 +624,24 @@ const overkillGold = (over, hp, type) => rnd(Math.min(CFG.goldCap, CFG.goldA * M
 // ===== 카드 도감 =====
 const CATALOG = (() => {
   const list = [];
-  for (let n = 1; n <= 15; n++) list.push({ key: `num-${n}`, title: `숫자 ${n}`, desc: n <= 9 ? '기본 덱에 들어 있는 숫자예요' : '상점이나 강화로 얻는 큰 숫자예요', sample: numberCard(-n, n) });
-  const opDesc = { '*': '강력한 대신 강화할 수 없어요', '^': `× 카드가 진화한 거듭제곱 카드예요. 지수는 ${CFG.powCap}까지 (6막부터)` };
-  ['+', '-', '*', '/', '^'].forEach((op, i) => list.push({ key: `op-${op}`, title: `${SYM[op]} 카드`, desc: opDesc[op] || '기본 기호 카드예요', sample: symbolCard(-100 - i, op) }));
+  // 제목·설명은 언어를 바꾸면 바로 따라가게 그때그때 만들어요
+  const add = (key, title, desc, sample) => list.push({ key, sample, get title() { return title(); }, get desc() { return desc(); } });
+  for (let n = 1; n <= 15; n++) add(`num-${n}`, () => T(`숫자 ${n}`, `Number ${n}`),
+    () => n <= 9 ? T('기본 덱에 들어 있는 숫자예요', 'A number from the starting deck') : T('상점이나 강화로 얻는 큰 숫자예요', 'A big number from shops or upgrades'), numberCard(-n, n));
+  const opDesc = { '*': () => T('강력한 대신 강화할 수 없어요', "Powerful, but can't be enhanced"),
+    '^': () => T(`× 카드가 진화한 거듭제곱 카드예요. 지수는 ${CFG.powCap}까지 (6막부터)`, `A power card evolved from a × card. Exponent capped at ${CFG.powCap} (from Act 6)`) };
+  ['+', '-', '*', '/', '^'].forEach((op, i) => add(`op-${op}`, () => T(`${SYM[op]} 카드`, `${SYM[op]} card`),
+    () => opDesc[op] ? opDesc[op]() : T('기본 기호 카드예요', 'A basic operator card'), symbolCard(-100 - i, op)));
   ENH_KEYS.forEach((e, i) => {
     const s = isOpPerk(e) ? symbolCard(-200 - i, ENH[e].op) : numberCard(-200 - i, 7);
     s.enh = [e];
     if (e === 'stack') s.bonus = CFG.stackStep;
-    list.push({ key: `enh-${e}`, title: `${ENH[e].name} 강화${ENH[e].op ? ` (${SYM[ENH[e].op]} 카드)` : ''}`, desc: ENH[e].desc, sample: s });
+    add(`enh-${e}`, () => T(`${ENH[e].name} 강화`, `${ENH[e].name} enhancement`) + (ENH[e].op ? T(` (${SYM[ENH[e].op]} 카드)`, ` (${SYM[ENH[e].op]} card)`) : ''), () => ENH[e].desc, s);
   });
   TR.forEach((t, i) => {
     const s = numberCard(-300 - i, 5); s.tr = t.key;
-    const when = t.special ? `${t.act}막부터 보스를 잡으면 나와요` : `${t.act}막부터 나와요`;
-    list.push({ key: `tr-${t.key}`, title: `${t.name} 변신`, desc: `${when}. 숫자 n을 ${t.txt('n')}으로 계산해요 (n은 ${t.cap}까지)`, sample: s });
+    add(`tr-${t.key}`, () => T(`${t.name} 변신`, `${t.name} transform`),
+      () => T(`${t.act}막부터 나와요. 숫자 n을 ${t.txt('n')}으로 계산해요 (n은 ${t.cap}까지)`, `Appears from Act ${t.act}. Turns a number n into ${t.txt('n')} (n up to ${t.cap})`), s);
   });
   return list;
 })();
@@ -628,25 +658,25 @@ const collectionCount = p => p.collection.filter(k => CATALOG_KEYS.has(k)).lengt
 
 // ===== 업적 =====
 const ACHIEVEMENTS = [
-  ['firstKill', '👾', '첫 계산', '몹을 처음으로 처치하기', p => p.stats.kills >= 1],
-  ['elite', '💀', '정예 사냥꾼', '정예 몹 처치하기', p => p.stats.eliteKills >= 1],
-  ['boss', '👑', '1막 돌파', '보스 처치하기', p => p.stats.bossKills >= 1],
-  ['act3', '🧭', '깊은 곳으로', '3막에 도달하기', p => p.stats.maxAct >= 3],
-  ['act5', '🏔️', '팩토리얼의 땅', '5막에 도달하기', p => p.stats.maxAct >= 5],
-  ['ascend', '🌌', '차원 상승', `로그 단계(${CFG.logAct}막)에 도달하기`, p => p.stats.maxAct >= CFG.logAct],
-  ['hit1k', '💥', '천 단위', '한 방에 1,000 이상 피해 주기', p => p.stats.maxHit >= 1000],
-  ['hit100k', '🔥', '십만 대군', '한 방에 10만 이상 피해 주기', p => p.stats.maxHit >= 100000],
-  ['hit1e8', '🌋', '억 소리 나는', '한 방에 1억 이상 피해 주기', p => p.stats.maxHit >= 1e8],
-  ['oneShot', '🎯', '일격필살', '첫 계산 한 번으로 몹 처치하기', p => p.stats.oneShots >= 1],
-  ['overkill', '📈', '과잉 계산', '적 체력의 200% 이상 초과 피해 주기', p => p.stats.bigOverkills >= 1],
-  ['luck', '🍀', '행운의 숫자', '행운 ×5 터뜨리기', p => p.stats.luckProcs >= 1],
-  ['rich', '💰', '부자 수학자', '골드 1,000 이상 모으기', p => p.stats.maxGold >= 1000],
-  ['shopper', '🛒', '단골손님', '상점에서 카드 5장 사기 (누적)', p => p.stats.cardsBought >= 5],
-  ['kills100', '⚔️', '백전노장', '몹 100마리 처치하기 (누적)', p => p.stats.kills >= 100],
-  ['runs10', '📚', '끈기', '게임 10판 끝내기', p => p.stats.runsFinished >= 10],
-  ['collectHalf', '🗂️', '수집가', '카드 도감 절반 채우기', p => collectionCount(p) / CATALOG.length >= 0.5],
-  ['collectAll', '🏆', '완벽한 도감', '카드 도감 모두 채우기', p => collectionCount(p) / CATALOG.length >= 1]
-].map(([id, icon, title, desc, isMet]) => ({ id, icon, title, desc, isMet }));
+  ['firstKill', '👾', ['첫 계산', 'First Calculation'], ['몹을 처음으로 처치하기', 'Defeat your first monster'], p => p.stats.kills >= 1],
+  ['elite', '💀', ['정예 사냥꾼', 'Elite Hunter'], ['정예 몹 처치하기', 'Defeat an elite'], p => p.stats.eliteKills >= 1],
+  ['boss', '👑', ['1막 돌파', 'Act 1 Cleared'], ['보스 처치하기', 'Defeat a boss'], p => p.stats.bossKills >= 1],
+  ['act3', '🧭', ['깊은 곳으로', 'Going Deeper'], ['3막에 도달하기', 'Reach Act 3'], p => p.stats.maxAct >= 3],
+  ['act5', '🏔️', ['팩토리얼의 땅', 'Land of Factorials'], ['5막에 도달하기', 'Reach Act 5'], p => p.stats.maxAct >= 5],
+  ['ascend', '🌌', ['차원 상승', 'Dimension Ascent'], [`로그 단계(${CFG.logAct}막)에 도달하기`, `Reach the log stage (Act ${CFG.logAct})`], p => p.stats.maxAct >= CFG.logAct],
+  ['hit1k', '💥', ['천 단위', 'Four Digits'], ['한 방에 1,000 이상 피해 주기', 'Deal 1,000+ damage in one hit'], p => p.stats.maxHit >= 1000],
+  ['hit100k', '🔥', ['십만 대군', 'Six Figures'], ['한 방에 10만 이상 피해 주기', 'Deal 100,000+ damage in one hit'], p => p.stats.maxHit >= 100000],
+  ['hit1e8', '🌋', ['억 소리 나는', 'Hundred Million'], ['한 방에 1억 이상 피해 주기', 'Deal 100,000,000+ damage in one hit'], p => p.stats.maxHit >= 1e8],
+  ['oneShot', '🎯', ['일격필살', 'One-Shot'], ['첫 계산 한 번으로 몹 처치하기', 'Defeat a monster with your first calculation'], p => p.stats.oneShots >= 1],
+  ['overkill', '📈', ['과잉 계산', 'Overkill'], ['적 체력의 200% 이상 초과 피해 주기', 'Deal 200%+ overkill damage'], p => p.stats.bigOverkills >= 1],
+  ['luck', '🍀', ['행운의 숫자', 'Lucky Number'], ['행운 ×5 터뜨리기', 'Trigger Luck ×5'], p => p.stats.luckProcs >= 1],
+  ['rich', '💰', ['부자 수학자', 'Rich Mathematician'], ['골드 1,000 이상 모으기', 'Hold 1,000+ gold'], p => p.stats.maxGold >= 1000],
+  ['shopper', '🛒', ['단골손님', 'Regular'], ['상점에서 카드 5장 사기 (누적)', 'Buy 5 cards in shops (total)'], p => p.stats.cardsBought >= 5],
+  ['kills100', '⚔️', ['백전노장', 'Veteran'], ['몹 100마리 처치하기 (누적)', 'Defeat 100 monsters (total)'], p => p.stats.kills >= 100],
+  ['runs10', '📚', ['끈기', 'Persistence'], ['게임 10판 끝내기', 'Finish 10 runs'], p => p.stats.runsFinished >= 10],
+  ['collectHalf', '🗂️', ['수집가', 'Collector'], ['카드 도감 절반 채우기', 'Fill half of the collection'], p => collectionCount(p) / CATALOG.length >= 0.5],
+  ['collectAll', '🏆', ['완벽한 도감', 'Complete Collection'], ['카드 도감 모두 채우기', 'Fill the whole collection'], p => collectionCount(p) / CATALOG.length >= 1]
+].map(([id, icon, t, d, isMet]) => ({ id, icon, get title() { return T(t[0], t[1]); }, get desc() { return T(d[0], d[1]); }, isMet }));
 
 // ===== 저장 슬롯 3개 (localStorage) =====
 const SLOT_COUNT = 3;
@@ -822,11 +852,11 @@ class Game {
   updateProfile(change) {
     let unlocked = [], perks = [];
     Store.update(this.slot, p => { change(p); unlocked = evaluateAchievements(p); perks = evaluatePerks(p); });
-    unlocked.forEach(a => pushToast(a.icon, '업적 달성!', a.title));
+    unlocked.forEach(a => pushToast(a.icon, T('업적 달성!', 'Achievement unlocked!'), a.title));
     // 한꺼번에 여럿 풀리면 (예전 기록으로 처음 열 때) 알림 하나로 묶어요
-    if (perks.length > 2) pushToast('🎒', '퍽 해금! 메인 화면에서 장착해요', `${perks.map(k => k.name).slice(0, 3).join(', ')} 외 ${perks.length - 3}개`);
-    else perks.forEach(k => pushToast(k.icon, '퍽 해금! 메인 화면에서 장착해요', k.name));
-    if (unlocked.length || perks.length) Sound.play('fanfare');
+    const perkTitle = T('퍽 해금! 새 게임을 시작할 때 골라요', 'Perk unlocked! Pick it when you start a new game');
+    if (perks.length > 2) pushToast('🎒', perkTitle, T(`${perks.map(k => k.name).slice(0, 3).join(', ')} 외 ${perks.length - 3}개`, `${perks.map(k => k.name).slice(0, 3).join(', ')} and ${perks.length - 3} more`));
+    else perks.forEach(k => pushToast(k.icon, perkTitle, k.name));
   }
 
   // ----- 퍽 -----
@@ -838,7 +868,7 @@ class Game {
     const g = rnd(12 * R.econ(this.run, 1));
     this.run.gold += g;
     this.run.goldTotal += g;
-    return ` 비상금 +${fmt(g)}골드.`;
+    return T(` 비상금 +${fmt(g)}골드.`, ` Allowance +${fmt(g)} gold.`);
   }
 
   // 진행 중인 판을 슬롯에 저장해요
@@ -861,8 +891,7 @@ class Game {
       p.collection = [...have];
     });
     if (silent) return;
-    fresh.forEach(k => { const e = CATALOG.find(x => x.key === k); if (e) pushToast('🃏', '도감 등록', e.title); });
-    if (fresh.length) Sound.play('chime', { vol: 0.8 });
+    fresh.forEach(k => { const e = CATALOG.find(x => x.key === k); if (e) pushToast('🃏', T('도감 등록', 'New in collection'), e.title); });
   }
 
   // ----- 시작과 끝 -----
@@ -886,7 +915,7 @@ class Game {
     const p = this.profile;
     // 장착한 퍽은 판을 시작할 때 정해져요
     this.run.perks = (p.equipped || []).filter(k => (p.perksUnlocked || []).includes(k)).slice(0, PERK_SLOTS);
-    this.run.mapMsg = (p.bestDepth > 0 ? `역대 기록: ${p.bestDepth}층까지, 한 방 ${fmt(p.bestSingle)}.` : '1층에서 출발할 칸을 고르세요.') + this.actStart();
+    this.run.mapMsg = (p.bestDepth > 0 ? T(`역대 기록: ${p.bestDepth}층까지, 한 방 ${fmt(p.bestSingle)}.`, `Best: floor ${p.bestDepth}, best hit ${fmt(p.bestSingle)}.`) : T('1층에서 출발할 칸을 고르세요.', 'Pick a starting node on floor 1.')) + this.actStart();
     this.updateProfile(p => p.stats.runsStarted++);
     this.collect(this.run.deck, true);
     this.save();
@@ -968,7 +997,7 @@ class Game {
     if (!R.reachable(this.run, n) || this.busy) return;
     if (n.type === 'boss') {
       // 보스 앞: 화면이 어두워지며 이름판이 꽂히고 무거운 종이 울려요
-      await this.showIntro({ icon: '👑', title: n.name, sub: `${R.actName(this.run)} 보스 · 체력 ${R.hpText(this.run, R.hpFor(this.run, n.floor, 'boss'))}` });
+      await this.showIntro({ icon: '👑', title: mobName(n.name), sub: T(`${R.actName(this.run)} 보스 · 체력 ${R.hpText(this.run, R.hpFor(this.run, n.floor, 'boss'))}`, `${R.actName(this.run)} boss · HP ${R.hpText(this.run, R.hpFor(this.run, n.floor, 'boss'))}`) });
     }
     this.run.curID = n.id;
     this.run.visited.push(n.id);
@@ -1004,14 +1033,14 @@ class Game {
       if (ascending) {
         run.gold = rnd(run.gold / oldEcon);
         run.deck.forEach(c => { if (c.enh.includes('stack')) c.bonus = Math.max(CFG.stackStep, rnd(c.bonus / oldEcon)); });
-        msg += ' 차원 상승! 이제 체력은 10의 거듭제곱이고, 계산 결과의 자릿수(log₁₀)만큼 깎여요. 골드도 새 단위로 바뀌었어요.';
-        this.showIntro({ icon: '🌌', title: '차원 상승', sub: '로그 단계 · 결과의 자릿수가 피해가 돼요' }).then(paint);
+        msg += T(' 차원 상승! 이제 체력은 10의 거듭제곱이고, 계산 결과의 자릿수(log₁₀)만큼 깎여요. 골드도 새 단위로 바뀌었어요.', ' Dimension Ascent! HP is now a power of ten, and damage is the number of digits in your result (log₁₀). Gold has been converted to the new scale.');
+        this.showIntro({ icon: '🌌', title: T('차원 상승', 'Dimension Ascent'), sub: T('로그 단계 · 결과의 자릿수가 피해가 돼요', 'Log stage · the digits of your result become damage') }).then(paint);
       } else {
-        msg += ` ${R.actName(run)}이 시작됐어요.`;
+        msg += T(` ${R.actName(run)}이 시작됐어요.`, ` ${R.actName(run)} begins.`);
       }
       const t = LADDER.find(t => t.act === run.act);
-      if (t) msg += ` 이제 ${t.name} 변신 강화가 나와요.`;
-      if (run.act === 6) msg += ' 이제 × 카드를 ^ 카드로 진화시킬 수 있어요.';
+      if (t) msg += T(` 이제 ${t.name} 변신 강화가 나와요.`, ` ${t.name} transforms now appear.`);
+      if (run.act === 6) msg += T(' 이제 × 카드를 ^ 카드로 진화시킬 수 있어요.', ' You can now evolve × cards into ^ cards.');
       msg += this.actStart();
     }
     run.mapMsg = msg;
@@ -1029,8 +1058,9 @@ class Game {
     const rate = R.leftoverRate(run);
     const f = { nodeID: node.id, hpMax: R.hpFor(run, run.floor, node.type), score: 0, playsLeft: run.plays, discLeft: run.discards,
       numDraw: nums, opDraw: ops, numPile: [], opPile: [], handCards: [], sel: [], log: [], resolving: false };
-    const logRule = R.isLog(run) ? ' 로그 단계라서 계산 결과의 자릿수(log₁₀)만큼 체력의 지수가 깎여요.' : '';
-    f.log = [{ id: uid(), text: `${node.name}이(가) 나타났어요. ${run.plays}번 안에 체력 ${R.hpText(run, f.hpMax)}을 깎으세요.${logRule} 이기면 남은 계산 1번당 ${fmt(rate.play)}골드, 버리기 1번당 ${fmt(rate.disc)}골드를 받아요.`, note: '', style: 'info' }];
+    const logRule = R.isLog(run) ? T(' 로그 단계라서 계산 결과의 자릿수(log₁₀)만큼 체력의 지수가 깎여요.', ' In the log stage, the digits of your result (log₁₀) come off the HP exponent.') : '';
+    f.log = [{ id: uid(), text: T(`${node.name}이(가) 나타났어요. ${run.plays}번 안에 체력 ${R.hpText(run, f.hpMax)}을 깎으세요.${logRule} 이기면 남은 계산 1번당 ${fmt(rate.play)}골드, 버리기 1번당 ${fmt(rate.disc)}골드를 받아요.`,
+      `${mobName(node.name)} appears! Bring its ${R.hpText(run, f.hpMax)} HP to zero within ${run.plays} calcs.${logRule} Win and get ${fmt(rate.play)} gold per unused calc and ${fmt(rate.disc)} gold per unused discard.`), note: '', style: 'info' }];
     run.fight = f;
     run.phase = 'fight';
     this.refill();
@@ -1066,7 +1096,7 @@ class Game {
     f.handCards = [];
     this.refill();
     Sound.play('toss');
-    this.log('연필 깎기: 손패를 새로 뽑았어요', 'info');
+    this.log(T('연필 깎기: 손패를 새로 뽑았어요', 'Sharpen: drew a fresh hand'), 'info');
     this.save();
     this.checkStuck();
   }
@@ -1110,9 +1140,9 @@ class Game {
   get selectedCards() { return (this.run.fight ? this.run.fight.sel : []).map(id => R.card(this.run, id)).filter(Boolean); }
 
   validity(s) {
-    if (!s.length) return { ok: false, msg: '손패를 누르거나 훑어서 카드를 골라 수식을 만드세요' };
-    for (let i = 0; i < s.length; i++) if ((i % 2 === 0) !== (s[i].kind === 'num')) return { ok: false, msg: '숫자와 기호를 번갈아 놓아야 해요' };
-    if (s.length % 2 === 0) return { ok: false, msg: '숫자로 끝나야 계산할 수 있어요' };
+    if (!s.length) return { ok: false, msg: T('손패를 누르거나 훑어서 카드를 골라 수식을 만드세요', 'Tap or swipe your hand to build an equation') };
+    for (let i = 0; i < s.length; i++) if ((i % 2 === 0) !== (s[i].kind === 'num')) return { ok: false, msg: T('숫자와 기호를 번갈아 놓아야 해요', 'Alternate numbers and operators') };
+    if (s.length % 2 === 0) return { ok: false, msg: T('숫자로 끝나야 계산할 수 있어요', 'End with a number to calculate') };
     return { ok: true, msg: '' };
   }
 
@@ -1127,22 +1157,22 @@ class Game {
       let r, note = '';
       switch (o.op) {
         case '+':
-          if (o.enh.includes('amp')) { r = N.add(a, N.mul(b, N.of(3))); note = '증폭: 오른쪽 ×3'; } else r = N.add(a, b);
-          if (o.enh.includes('stack')) { r = N.add(r, N.of(o.bonus)); note = `적립 +${fmt(o.bonus)}`; }
+          if (o.enh.includes('amp')) { r = N.add(a, N.mul(b, N.of(3))); note = T('증폭: 오른쪽 ×3', 'Amplify: right ×3'); } else r = N.add(a, b);
+          if (o.enh.includes('stack')) { r = N.add(r, N.of(o.bonus)); note = T(`적립 +${fmt(o.bonus)}`, `Accumulate +${fmt(o.bonus)}`); }
           break;
         case '-':
           // 역전은 빼서 음수가 될 때 발동해서, 빼는 대신 두 수를 더하고 ×4 해요
           r = N.sub(a, b);
-          if (o.enh.includes('flip') && r.s < 0) { r = N.mul(N.add(a, b), N.of(4)); note = '역전: 더하고 ×4'; }
+          if (o.enh.includes('flip') && r.s < 0) { r = N.mul(N.add(a, b), N.of(4)); note = T('역전: 더하고 ×4', 'Reversal: add, ×4'); }
           break;
         case '*': r = N.mul(a, b); break;
         case '/':
-          if (o.enh.includes('exact') && N.divides(a, b)) { r = N.mul(N.mul(a, b), N.of(2)); note = '정확: 곱하고 ×2'; }
+          if (o.enh.includes('exact') && N.divides(a, b)) { r = N.mul(N.mul(a, b), N.of(2)); note = T('정확: 곱하고 ×2', 'Exact: multiply, ×2'); }
           else r = N.div(a, b);
           break;
         case '^':
           r = N.pow(a, b);
-          if (Math.abs(N.num(b)) > CFG.powCap) note = `지수는 ${CFG.powCap}까지`;
+          if (Math.abs(N.num(b)) > CFG.powCap) note = T(`지수는 ${CFG.powCap}까지`, `exponent capped at ${CFG.powCap}`);
           break;
       }
       val = r;
@@ -1162,20 +1192,20 @@ class Game {
     let val;
     if (isLog) {
       val = chained.val.s > 0 ? Math.max(0, N.log(chained.val)) : 0;
-      res.steps.push({ text: `자릿수 log₁₀ = ${fmt(Math.floor(val * 100) / 100)}`, note: '로그 단계' });
+      res.steps.push({ text: T(`자릿수 log₁₀ = ${fmt(Math.floor(val * 100) / 100)}`, `Digits log₁₀ = ${fmt(Math.floor(val * 100) / 100)}`), note: T('로그 단계', 'log stage') });
     } else {
       val = chained.val.v !== null ? chained.val.v : chained.val.s * BIG;
     }
     const fire = R.fireBonus(this.run);
-    cs.forEach(c => { if (c.enh.includes('fire')) { val += fire; res.fx.push({ text: `불꽃 +${fmt(fire)}`, style: 'fx' }); } });
-    cs.forEach(c => { if (c.enh.includes('gold')) { val *= 2; res.fx.push({ text: '황금 ×2', style: 'fxGold' }); } });
+    cs.forEach(c => { if (c.enh.includes('fire')) { val += fire; res.fx.push({ text: T(`불꽃 +${fmt(fire)}`, `Fire +${fmt(fire)}`), style: 'fx' }); } });
+    cs.forEach(c => { if (c.enh.includes('gold')) { val *= 2; res.fx.push({ text: T('황금 ×2', 'Gold ×2'), style: 'fxGold' }); } });
     cs.forEach(c => {
       if (!c.enh.includes('luck')) return;
       res.hasLuck = true;
       if (!roll) return;
       const chance = R.hasPerk(this.run, 'clover') ? 0.35 : CFG.luckChance;
-      if (Math.random() < chance) { val *= 5; res.luckHit = true; res.fx.push({ text: '행운 ×5!!', style: 'fxGold' }); }
-      else res.fx.push({ text: '행운은 다음 기회에', style: 'miss' });
+      if (Math.random() < chance) { val *= 5; res.luckHit = true; res.fx.push({ text: T('행운 ×5!!', 'Luck ×5!!'), style: 'fxGold', luck: true }); }
+      else res.fx.push({ text: T('행운은 다음 기회에', 'No luck this time'), style: 'miss' });
     });
     res.final = Math.max(0, isLog ? Math.floor(val * 10) / 10 : Math.floor(Math.min(val, BIG)));
     return res;
@@ -1194,7 +1224,7 @@ class Game {
   select(id) {
     const f = this.run.fight;
     if (this.busy || !f) return;
-    if (f.sel.length >= CFG.maxLen) { this.previewOverride = `수식은 최대 ${CFG.maxLen}장이에요`; return; }
+    if (f.sel.length >= CFG.maxLen) { this.previewOverride = T(`수식은 최대 ${CFG.maxLen}장이에요`, `Equations hold at most ${CFG.maxLen} cards`); return; }
     const h = f.handCards.find(h => h.cardID === id && !h.out); if (!h) return;
     h.out = true;
     f.sel.push(id);
@@ -1234,7 +1264,7 @@ class Game {
   checkStuck() {
     const f = this.run.fight; if (!f) return;
     const hasNum = f.handCards.some(h => { const c = R.card(this.run, h.cardID); return c && c.kind === 'num'; });
-    if (!hasNum && f.discLeft === 0 && f.playsLeft > 0) this.gameOver('낼 수 있는 숫자 카드가 없고 버리기도 다 썼어요');
+    if (!hasNum && f.discLeft === 0 && f.playsLeft > 0) this.gameOver(T('낼 수 있는 숫자 카드가 없고 버리기도 다 썼어요', 'No number cards to play and no discards left'));
   }
 
   log(text, style, note = '') { if (this.run.fight) this.run.fight.log.push({ id: uid(), text, note, style }); }
@@ -1274,7 +1304,7 @@ class Game {
     for (const fx of res.fx) {
       await wait(450); this.log(fx.text, fx.style); paint();
       if (fx.style === 'miss') Sound.play('miss');
-      else { Sound.play(fx.text.startsWith('행운') ? 'luck' : 'sparkle'); shake(1); }
+      else { Sound.play(fx.luck ? 'luck' : 'sparkle'); shake(1); }
     }
     await wait(200);
 
@@ -1335,17 +1365,17 @@ class Game {
         if (over >= f.hpMax * 2) p.stats.bigOverkills++;
         p.stats.maxGold = Math.max(p.stats.maxGold, run.gold);
       });
-      this.log(`처치 ${fmt(g1)} + 초과 피해 ${fmt(g2)} + 남은 계산 ${fmt(g4)} + 남은 버리기 ${fmt(g3)} = 골드 +${fmt(gain)}`, 'fxGold');
+      this.log(T(`처치 ${fmt(g1)} + 초과 피해 ${fmt(g2)} + 남은 계산 ${fmt(g4)} + 남은 버리기 ${fmt(g3)} = 골드 +${fmt(gain)}`, `Kill ${fmt(g1)} + overkill ${fmt(g2)} + calcs ${fmt(g4)} + discards ${fmt(g3)} = +${fmt(gain)} gold`), 'fxGold');
       return { win: node.type === 'elite' ? 2 : 1 };
     }
     // 뒷심: 막마다 한 번, 거의 다 잡았으면 한 번 더 계산해요
     if (f.playsLeft === 0 && f.hpMax - f.score <= f.hpMax * 0.2 && R.perkReady(run, 'grit')) {
       this.usePerk('grit');
       f.playsLeft = 1;
-      this.log('뒷심! 한 번 더 계산할 수 있어요', 'fxGold');
+      this.log(T('뒷심! 한 번 더 계산할 수 있어요', 'Second Wind! One more calc'), 'fxGold');
       return {};
     }
-    if (f.playsLeft === 0) return { lose: `${node.name}의 체력이 ${R.hpText(run, f.hpMax - f.score)} 남았어요` };
+    if (f.playsLeft === 0) return { lose: T(`${node.name}의 체력이 ${R.hpText(run, f.hpMax - f.score)} 남았어요`, `${mobName(node.name)} still had ${R.hpText(run, f.hpMax - f.score)} HP`) };
     return {};
   }
 
@@ -1362,32 +1392,32 @@ class Game {
     const enchant = e => () => {
       const cs = deck.filter(c => !PLAIN_OPS.includes(c.op) && !c.enh.includes(e)); if (!cs.length) return null;
       const c = pick(cs);
-      return { kind: 'enchant', enh: e, cardID: c.id, title: `${cardLabel(c)}에 ${ENH[e].name}`, desc: ENH[e].desc };
+      return { kind: 'enchant', enh: e, cardID: c.id, title: T(`${cardLabel(c)}에 ${ENH[e].name}`, `${ENH[e].name} on ${cardLabel(c)}`), desc: ENH[e].desc };
     };
     const opPerk = e => () => {
       const cs = deck.filter(c => c.op === ENH[e].op && !c.enh.some(isOpPerk)); if (!cs.length) return null;
       const c = pick(cs);
-      return { kind: 'opPerk', enh: e, cardID: c.id, title: `${cardLabel(c)}에 ${ENH[e].name}`, desc: ENH[e].desc };
+      return { kind: 'opPerk', enh: e, cardID: c.id, title: T(`${cardLabel(c)}에 ${ENH[e].name}`, `${ENH[e].name} on ${cardLabel(c)}`), desc: ENH[e].desc };
     };
     const upNum = () => {
       // 변신 상한에 닿은 카드는 n을 올려도 값이 그대로라 빼요
       const cs = deck.filter(c => c.kind === 'num' && c.v < (trOf(c) ? trOf(c).cap : Infinity)); if (!cs.length) return null;
       const c = pick(cs);
-      return { kind: 'upNum', cardID: c.id, title: `숫자 ${faceText(c)}의 n을 ${c.v + 3}으로`, desc: '이 카드의 값이 영구히 3 올라요' };
+      return { kind: 'upNum', cardID: c.id, title: T(`숫자 ${faceText(c)}의 n을 ${c.v + 3}으로`, `Raise Number ${faceText(c)} to ${c.v + 3}`), desc: T('이 카드의 값이 영구히 3 올라요', "Permanently adds 3 to this card's value") };
     };
     const trPerk = t => () => {
       const ti = TR.indexOf(t);
       const cs = deck.filter(c => c.kind === 'num' && trIndex(c) < ti && t.f(Math.min(c.v, t.cap)) > numVal(c)); if (!cs.length) return null;
       const c = pick(cs);
       const after = t.f(Math.min(c.v, t.cap));
-      const title = c.tr ? `${faceText(c)}을 ${t.txt(Math.min(c.v, t.cap))}로` : `숫자 ${c.v}에 ${t.name}`;
-      return { kind: 'transform', tr: t.key, cardID: c.id, title, desc: `변신하면 이 카드의 계산 값이 ${fmt(after)}이 돼요` };
+      const title = c.tr ? T(`${faceText(c)}을 ${t.txt(Math.min(c.v, t.cap))}로`, `Turn ${faceText(c)} into ${t.txt(Math.min(c.v, t.cap))}`) : T(`숫자 ${c.v}에 ${t.name}`, `${t.name} on number ${c.v}`);
+      return { kind: 'transform', tr: t.key, cardID: c.id, title, desc: T(`변신하면 이 카드의 계산 값이 ${fmt(after)}이 돼요`, `This card will count as ${fmt(after)}`) };
     };
     // 6막부터: × 카드를 ^ 카드로 진화
     const evolve = () => {
       const cs = deck.filter(c => c.op === '*'); if (run.act < 6 || !cs.length) return null;
       const c = pick(cs);
-      return { kind: 'evolve', cardID: c.id, title: '× 카드를 ^ 카드로 진화', desc: `거듭제곱: 왼쪽 수를 오른쪽 수만큼 거듭제곱해요 (지수는 ${CFG.powCap}까지)` };
+      return { kind: 'evolve', cardID: c.id, title: T('× 카드를 ^ 카드로 진화', 'Evolve a × card into ^'), desc: T(`거듭제곱: 왼쪽 수를 오른쪽 수만큼 거듭제곱해요 (지수는 ${CFG.powCap}까지)`, `Power: raises the left number to the right number (exponent capped at ${CFG.powCap})`) };
     };
     // 손패·계산 +1은 판을 크게 바꾸므로 뽑혀도 일정 확률로만 나와요
     const chance = p => Math.random() < p;
@@ -1399,8 +1429,8 @@ class Game {
       // 변신은 해금된 것마다 한 칸씩, 뽑혀도 일정 확률로만 나와요 (막이 오를수록 너무 많아지지 않게)
       ...R.unlockedTR(run).map(t => () => chance(CFG.trPerkRate) ? trPerk(t)() : null),
       // 손패·버리기 +1은 판을 크게 바꿔서 드물게, 상한까지만 나와요 (계산 기회 +1은 없어요)
-      () => run.hand < CFG.handMax && chance(CFG.handPerkRate) ? { kind: 'handSize', glyph: '손+1', title: '손패 +1장', desc: '한 번에 들고 있는 카드가 늘어요' } : null,
-      () => run.discards < CFG.discardMax && chance(CFG.discardPerkRate) ? { kind: 'discards', glyph: '버림', title: '버리기 +1', desc: '전투마다 한 번 더 버릴 수 있어요' } : null
+      () => run.hand < CFG.handMax && chance(CFG.handPerkRate) ? { kind: 'handSize', glyph: T('손+1', 'Hand+1'), title: T('손패 +1장', 'Hand +1 card'), desc: T('한 번에 들고 있는 카드가 늘어요', 'Hold one more card at a time') } : null,
+      () => run.discards < CFG.discardMax && chance(CFG.discardPerkRate) ? { kind: 'discards', glyph: T('버림', 'Disc+1'), title: T('버리기 +1', 'Discard +1'), desc: T('전투마다 한 번 더 버릴 수 있어요', 'One more discard in every fight') } : null
     ];
     const node = this.fightNode;
     // 정예 사냥꾼: 정예를 잡으면 선택지 4개
@@ -1421,13 +1451,14 @@ class Game {
 
   openReward(count, idx = 1) {
     this.run.reward = { count, idx, offers: this.genPerks() };
+    // 특전 고르기 창이 뜰 때 동전 짤랑
+    Sound.play('coins');
     this.save();
   }
 
   choose(perk) {
     const run = this.run, reward = run.reward;
     if (!reward) return;
-    Sound.play('coins');
     const c = perk.cardID != null ? R.card(run, perk.cardID) : null;
     if (c) {
       if (perk.kind === 'upNum') { c.v += 3; c.up++; }
@@ -1443,7 +1474,7 @@ class Game {
     if (reward.idx < reward.count) this.openReward(reward.count, reward.idx + 1);
     else {
       run.reward = null;
-      this.afterNode(`${this.fightNode ? this.fightNode.name : '몹'} 처치! 골드 +${fmt(run.lastGold ? run.lastGold.gain : 0)}`);
+      this.afterNode(T(`${this.fightNode ? this.fightNode.name : '몹'} 처치! 골드 +${fmt(run.lastGold ? run.lastGold.gain : 0)}`, `${this.fightNode ? mobName(this.fightNode.name) : 'Monster'} defeated! +${fmt(run.lastGold ? run.lastGold.gain : 0)} gold`));
     }
   }
 
@@ -1491,7 +1522,7 @@ class Game {
   }
 
   openShop() {
-    this.run.shop = { items: this.genShop(), pendingID: null, msg: `숫자 카드는 숫자와, 기호 카드는 기호와 바꿔요. 지금 물가는 1막 1층의 ${fmt(R.econ(this.run))}배예요.` };
+    this.run.shop = { items: this.genShop(), pendingID: null, msg: T(`숫자 카드는 숫자와, 기호 카드는 기호와 바꿔요. 지금 물가는 1막 1층의 ${fmt(R.econ(this.run))}배예요.`, `Number cards swap for numbers, operators for operators. Prices are ${fmt(R.econ(this.run))}× Act 1, Floor 1.`) };
     this.run.phase = 'shop';
     this.save();
   }
@@ -1517,7 +1548,7 @@ class Game {
     if (R.perkReady(run, 'coupon')) this.usePerk('coupon');
     run.deck[i] = pend;
     run.shop.items = run.shop.items.filter(c => c.id !== pend.id);
-    run.shop.msg = `${cardLabel(old)}을(를) 버리고 ${cardLabel(pend)}을(를) 넣었어요.`;
+    run.shop.msg = T(`${cardLabel(old)}을(를) 버리고 ${cardLabel(pend)}을(를) 넣었어요.`, `Swapped ${cardLabel(old)} for ${cardLabel(pend)}.`);
     run.shop.pendingID = null;
     this.updateProfile(p => p.stats.cardsBought++);
     this.collect([pend]);
@@ -1531,7 +1562,7 @@ class Game {
     this.usePerk('restock');
     shop.items = this.genShop();
     shop.pendingID = null;
-    shop.msg = '재입고! 물건을 새로 들여왔어요.';
+    shop.msg = T('재입고! 물건을 새로 들여왔어요.', 'Restocked! Fresh cards are in.');
     Sound.play('coins', { rate: 1.2, vol: 0.6 });
     this.save();
   }
@@ -1539,11 +1570,11 @@ class Game {
   leaveShop() {
     const run = this.run;
     run.shop.pendingID = null;
-    let msg = '상점을 나왔어요.';
+    let msg = T('상점을 나왔어요.', 'Left the shop.');
     // 이자: 남은 골드의 10% (최대 물가 ×10)
     if (R.hasPerk(run, 'interest') && run.gold > 0) {
       const g = Math.min(rnd(run.gold * 0.1), rnd(10 * R.econ(run)));
-      if (g > 0) { run.gold += g; run.goldTotal += g; msg += ` 이자 +${fmt(g)}골드.`; }
+      if (g > 0) { run.gold += g; run.goldTotal += g; msg += T(` 이자 +${fmt(g)}골드.`, ` Interest +${fmt(g)} gold.`); }
     }
     this.afterNode(msg);
   }
@@ -1553,16 +1584,16 @@ class Game {
   describe(c) {
     const parts = [cardLabel(c)];
     const t = trOf(c);
-    if (t) parts.push(`${t.name} 변신: 계산 값 ${fmt(numVal(c))}${c.v > t.cap ? ` (변신은 ${t.cap}까지만 적용)` : ''}`);
-    if (c.up > 0) parts.push(`강화로 +${c.up * 3}`);
+    if (t) parts.push(T(`${t.name} 변신: 계산 값 ${fmt(numVal(c))}${c.v > t.cap ? ` (변신은 ${t.cap}까지만 적용)` : ''}`, `${t.name} transform: counts as ${fmt(numVal(c))}${c.v > t.cap ? ` (applies up to ${t.cap})` : ''}`));
+    if (c.up > 0) parts.push(T(`강화로 +${c.up * 3}`, `+${c.up * 3} from upgrades`));
     c.enh.forEach(e => {
       let s = `${ENH[e].name}: ${ENH[e].desc}`;
-      if (e === 'stack') s += ` (현재 +${fmt(c.bonus)})`;
-      if (e === 'fire') s += ` (지금 +${fmt(R.fireBonus(this.run))})`;
+      if (e === 'stack') s += T(` (현재 +${fmt(c.bonus)})`, ` (now +${fmt(c.bonus)})`);
+      if (e === 'fire') s += T(` (지금 +${fmt(R.fireBonus(this.run))})`, ` (now +${fmt(R.fireBonus(this.run))})`);
       parts.push(s);
     });
-    if (c.op === '*') parts.push('곱셈 카드는 강화할 수 없어요');
-    if (c.op === '^') parts.push(`거듭제곱: 왼쪽 수를 오른쪽 수만큼 거듭제곱해요. 지수는 ${CFG.powCap}까지이고 강화할 수 없어요`);
+    if (c.op === '*') parts.push(T('곱셈 카드는 강화할 수 없어요', "× cards can't be enhanced"));
+    if (c.op === '^') parts.push(T(`거듭제곱: 왼쪽 수를 오른쪽 수만큼 거듭제곱해요. 지수는 ${CFG.powCap}까지이고 강화할 수 없어요`, `Power: raises the left number to the right number. Exponent capped at ${CFG.powCap}; can't be enhanced`));
     return parts.join('. ');
   }
 }
@@ -1615,36 +1646,37 @@ function paintMenu(app) {
     if (s) {
       const run = s.run;
       info = (run
-        ? `<span class="t">진행 중 · ${R.whereText(run)}</span><small>골드 ${fmt(run.gold)} · 처치 ${run.kills} · 덱 ${run.deck.length}장</small>`
-        : `<span class="t">진행 중인 게임 없음</span>`)
-        + `<small>최고 ${s.bestDepth}층 · 업적 ${Object.keys(s.achievements).length}/${ACHIEVEMENTS.length} · 도감 ${collectionCount(s)}/${CATALOG.length}</small>`
-        + `<small style="font-size:.68rem">저장: ${new Date(s.updatedAt).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })}</small>`;
+        ? `<span class="t">${T('진행 중', 'In progress')} · ${R.whereText(run)}</span><small>${T(`골드 ${fmt(run.gold)} · 처치 ${run.kills} · 덱 ${run.deck.length}장`, `Gold ${fmt(run.gold)} · Kills ${run.kills} · Deck ${run.deck.length}`)}</small>`
+        : `<span class="t">${T('진행 중인 게임 없음', 'No game in progress')}</span>`)
+        + `<small>${T(`최고 ${s.bestDepth}층 · 업적 ${Object.keys(s.achievements).length}/${ACHIEVEMENTS.length} · 도감 ${collectionCount(s)}/${CATALOG.length}`, `Best floor ${s.bestDepth} · Achievements ${Object.keys(s.achievements).length}/${ACHIEVEMENTS.length} · Collection ${collectionCount(s)}/${CATALOG.length}`)}</small>`
+        + `<small style="font-size:.68rem">${T('저장', 'Saved')}: ${new Date(s.updatedAt).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' })}</small>`;
     } else {
-      info = `<span class="t empty">빈 슬롯</span><small>새 게임을 시작할 수 있어요</small>`;
+      info = `<span class="t empty">${T('빈 슬롯', 'Empty slot')}</span><small>${T('새 게임을 시작할 수 있어요', 'Ready for a new game')}</small>`;
     }
     return `<div class="slot-row${sel === i ? ' sel' : ''}" role="button" tabindex="0" data-act="slot" data-i="${i}" aria-pressed="${sel === i}">
       <span class="num h">${i + 1}</span><span class="info">${info}</span>
-      ${s ? `<button class="del" data-act="delSlot" data-i="${i}" aria-label="슬롯 ${i + 1} 지우기">🗑</button>` : ''}</div>`;
+      ${s ? `<button class="del" data-act="delSlot" data-i="${i}" aria-label="${T(`슬롯 ${i + 1} 지우기`, `Delete slot ${i + 1}`)}">🗑</button>` : ''}</div>`;
   }).join('');
   const hasRun = !!(Store.slots[sel] && Store.slots[sel].run);
-  app.innerHTML = `<div class="wrap menu"><button class="iconbtn" data-act="sheet" data-s="sound" aria-label="소리 설정"></button>
-    <div class="logo"><div class="big h">셈판</div>
-      <p>숫자와 기호로 수식을 만들어 몹을 쓰러뜨리는 카드 로그라이크</p>
+  app.innerHTML = `<div class="wrap menu"><button class="iconbtn lang" data-act="lang" aria-label="Language / 언어"></button><button class="iconbtn" data-act="sheet" data-s="sound" aria-label="${T('소리 설정', 'Sound settings')}"></button>
+    <div class="logo"><div class="big h">${T('셈판', 'Sempan')}</div>
+      <p>${T('숫자와 기호로 수식을 만들어 몹을 쓰러뜨리는 카드 로그라이크', 'A card roguelike where you build equations to defeat monsters')}</p>
       <div class="eq" aria-hidden="true">${cardHTML(numberCard(-1, 7))}${cardHTML(symbolCard(-2, '*'))}${cardHTML(numberCard(-3, 3))}<span class="h">= 21</span></div>
     </div>
-    <div style="display:grid; gap:8px"><p class="sect">저장 슬롯</p>${slotRows}</div>
+    <div style="display:grid; gap:8px"><p class="sect">${T('저장 슬롯', 'Save slots')}</p>${slotRows}</div>
     <div style="display:grid; gap:10px">
-      ${hasRun ? `<button class="btn" data-act="continue">이어하기</button><button class="btn ghost" data-act="newGameAsk">새 게임</button>`
-               : `<button class="btn" data-act="start">시작하기</button>`}
+      ${hasRun ? `<button class="btn" data-act="continue">${T('이어하기', 'Continue')}</button><button class="btn ghost" data-act="newGameAsk">${T('새 게임', 'New game')}</button>`
+               : `<button class="btn" data-act="start">${T('시작하기', 'Start')}</button>`}
     </div>
     <div class="tiles">
-      <button class="tile" data-act="sheet" data-s="ach"><span class="ic">🏆</span><b>업적</b><span class="v h">${Object.keys(p.achievements).length}/${ACHIEVEMENTS.length}</span><small>슬롯 ${sel + 1}</small></button>
-      <button class="tile" data-act="sheet" data-s="col"><span class="ic">🃏</span><b>카드 도감</b><span class="v h">${collectionCount(p)}/${CATALOG.length}</span><small>슬롯 ${sel + 1}</small></button>
-      <button class="tile" data-act="sheet" data-s="perks"><span class="ic">🎒</span><b>퍽</b><span class="v h">${(p.perksUnlocked || []).length}/${PERKS.length}</span><small>${p.run ? `이번 판 ${(p.run.perks || []).length}개` : '시작할 때 골라요'}</small></button>
+      <button class="tile" data-act="sheet" data-s="ach"><span class="ic">🏆</span><b>${T('업적', 'Achievements')}</b><span class="v h">${Object.keys(p.achievements).length}/${ACHIEVEMENTS.length}</span><small>${T('슬롯', 'Slot')} ${sel + 1}</small></button>
+      <button class="tile" data-act="sheet" data-s="col"><span class="ic">🃏</span><b>${T('카드 도감', 'Collection')}</b><span class="v h">${collectionCount(p)}/${CATALOG.length}</span><small>${T('슬롯', 'Slot')} ${sel + 1}</small></button>
+      <button class="tile" data-act="sheet" data-s="perks"><span class="ic">🎒</span><b>${T('퍽', 'Perks')}</b><span class="v h">${(p.perksUnlocked || []).length}/${PERKS.length}</span><small>${p.run ? T(`이번 판 ${(p.run.perks || []).length}개`, `${(p.run.perks || []).length} this run`) : T('시작할 때 골라요', 'Pick at start')}</small></button>
     </div>
     <p class="sect" style="text-align:center; font-weight:400">v${VERSION}</p>
   </div>`;
-  paintSoundButton(app.querySelector('.iconbtn'));
+  paintSoundButton(app.querySelector('.iconbtn:not(.lang)'));
+  paintLangButton(app.querySelector('.iconbtn.lang'));
 }
 
 // ----- 게임 화면 -----
@@ -1653,18 +1685,20 @@ function paintGame(app) {
   const wideFight = isWide() && run.phase === 'fight';
   if (!app.firstChild) {
     app.innerHTML = `<div class="wrap"><header>
-      <button class="back" data-act="exit" aria-label="메인 화면으로 (자동 저장됨)">‹</button>
-      <span class="title h">셈판</span><span class="sp"></span>
-      <span class="where"></span><span class="gold">골드 <b class="hlmark"></b></span>
-      <button class="iconbtn" data-act="sheet" data-s="sound" aria-label="소리 설정"></button>
-      <button class="chip" data-act="sheet" data-s="deck">덱 보기</button></header>
+      <button class="back" data-act="exit" aria-label="${T('메인 화면으로 (자동 저장됨)', 'Main menu (auto-saved)')}">‹</button>
+      <span class="title h">${T('셈판', 'Sempan')}</span><span class="sp"></span>
+      <span class="where"></span><span class="gold">${T('골드', 'Gold')} <b class="hlmark"></b></span>
+      <button class="iconbtn lang" data-act="lang" aria-label="Language / 언어"></button>
+      <button class="iconbtn" data-act="sheet" data-s="sound" aria-label="${T('소리 설정', 'Sound settings')}"></button>
+      <button class="chip" data-act="sheet" data-s="deck">${T('덱 보기', 'Deck')}</button></header>
       <div id="screen"></div></div>`;
   }
   const wrap = app.firstChild;
   wrap.classList.toggle('fightwide', wideFight);
   $('header .where').textContent = R.whereText(run);
   $('header .gold b').textContent = fmt(run.gold);
-  paintSoundButton($('header .iconbtn'));
+  paintSoundButton($('header .iconbtn:not(.lang)'));
+  paintLangButton($('header .iconbtn.lang'));
   // 계산 연출 중에 나가면 끝나지 않은 작업이 슬롯을 덮어쓸 수 있어 막아요
   $('header .back').disabled = G.busy && !run.over;
   const screen = $('#screen');
@@ -1703,27 +1737,27 @@ function paintMap(screen) {
   }));
   svg += '</svg>';
   let labels = '';
-  for (let f = 1; f <= CFG.actLen; f++) labels += `<span class="fl" style="top:${yOf(f)}px">${f}층</span>`;
+  for (let f = 1; f <= CFG.actLen; f++) labels += `<span class="fl" style="top:${yOf(f)}px">${T(`${f}층`, `F${f}`)}</span>`;
   const btns = nodes.map(n => {
     const ok = R.reachable(run, n), done = run.visited.includes(n.id), past = !done && n.floor <= run.floor;
     const cls = ['node', n.type === 'boss' && 'boss', ok && 'reach', done && 'done', past && 'past'].filter(Boolean).join(' ');
     const hp = n.type === 'shop' ? '' : `<span class="hpv h">${R.hpText(run, R.hpFor(run, n.floor, n.type))}</span>`;
     return `<button class="${cls}" style="left:${cx(n)}%; top:${yOf(n.floor)}px" ${ok ? `data-act="node" data-id="${n.id}"` : 'disabled'}
-      aria-label="${n.floor}층 ${NODE[n.type].name} ${n.type === 'shop' ? '' : n.name}"><span class="ic">${NODE[n.type].icon}</span><span class="nm">${n.name}</span>${hp}</button>`;
+      aria-label="${T(`${n.floor}층`, `Floor ${n.floor}`)} ${NODE[n.type].name} ${n.type === 'shop' ? '' : mobName(n.name)}"><span class="ic">${NODE[n.type].icon}</span><span class="nm">${mobName(n.name)}</span>${hp}</button>`;
   }).join('');
-  const key = JSON.stringify([run.act, run.curID, run.visited.length, run.mapMsg, W]);
+  const key = JSON.stringify([run.act, run.curID, run.visited.length, run.mapMsg, W, LANG]);
   if (screen.dataset.key === key) return;
   screen.dataset.key = key;
   screen.innerHTML = `<div style="display:flex; flex-direction:column; gap:12px">
     <h3 class="mapt h">${R.actName(run)}</h3>
     ${run.mapMsg ? `<p class="mapmsg h">${run.mapMsg}</p>` : ''}
     <div class="map" style="height:${H}px">${svg}${labels}${btns}</div>
-    <details><summary>규칙</summary>
-      <p>선으로 이어진 다음 칸으로만 갈 수 있어요. 갈림길은 1~3갈래로 매번 달라져요. 칸 아래 숫자는 몹의 체력이에요.</p>
-      <p>몹을 잡으면 골드를 받고 특전을 하나 골라요. 골드는 처치 보상, 넘친 피해(상한 있음), 남은 계산·버리기 횟수로 정해지고, 모두 적 체력에 비례해 커져요. 정예는 체력이 높지만 특전을 두 개 골라요. 상점에 들르면 싸우지 않으니 특전과 골드는 없어요.</p>
-      <p>상점에서 숫자 카드는 숫자 카드와, 기호 카드는 기호 카드와 바꿔요. 가격도 적 체력과 함께 올라요.</p>
-      <p>막이 오를 때마다 숫자를 더 크게 바꾸는 변신 강화가 하나씩 해금돼요. 2막 제곱, 3막 2의 거듭제곱, 4막 자연지수, 5막 팩토리얼, 6막 자기거듭제곱, 7막 슈퍼팩토리얼, 8막 하이퍼팩토리얼 순이에요. 6막부터는 × 카드를 ^ 카드로 진화시킬 수 있어요.</p>
-      <p>${CFG.logAct - 1}막을 넘기면 차원 상승으로 로그 단계가 돼요. 체력은 10의 거듭제곱으로 바뀌고, 계산 결과의 자릿수(log₁₀)만큼 깎여요. 체력과 물가는 다시 1막처럼 시작해요.</p>
+    <details><summary>${T('규칙', 'Rules')}</summary>
+      <p>${T('선으로 이어진 다음 칸으로만 갈 수 있어요. 갈림길은 1~3갈래로 매번 달라져요. 칸 아래 숫자는 몹의 체력이에요.', "You can only move to a connected node on the next floor. Each floor has 1–3 paths. The number under a node is the monster's HP.")}</p>
+      <p>${T('몹을 잡으면 골드를 받고 특전을 하나 골라요. 골드는 처치 보상, 넘친 피해(상한 있음), 남은 계산·버리기 횟수로 정해지고, 모두 적 체력에 비례해 커져요. 정예는 체력이 높지만 특전을 두 개 골라요. 상점에 들르면 싸우지 않으니 특전과 골드는 없어요.', 'Defeat a monster to earn gold and pick an upgrade. Gold comes from the kill, overkill damage (capped) and unused calcs and discards, and it all scales with enemy HP. Elites are tougher but give two upgrades. Shops have no fight, so no upgrade or gold.')}</p>
+      <p>${T('상점에서 숫자 카드는 숫자 카드와, 기호 카드는 기호 카드와 바꿔요. 가격도 적 체력과 함께 올라요.', 'In shops, number cards swap for number cards and operators for operators. Prices rise with enemy HP.')}</p>
+      <p>${T('막이 오를 때마다 숫자를 더 크게 바꾸는 변신 강화가 하나씩 해금돼요. 2막 제곱, 3막 2의 거듭제곱, 4막 자연지수, 5막 팩토리얼, 6막 자기거듭제곱, 7막 슈퍼팩토리얼, 8막 하이퍼팩토리얼 순이에요. 6막부터는 × 카드를 ^ 카드로 진화시킬 수 있어요.', 'Each act unlocks a bigger transform: Square (Act 2), Power of two (3), Natural exponent (4), Factorial (5), Self-power (6), Superfactorial (7), Hyperfactorial (8). From Act 6 you can evolve × cards into ^ cards.')}</p>
+      <p>${T(`${CFG.logAct - 1}막을 넘기면 차원 상승으로 로그 단계가 돼요. 체력은 10의 거듭제곱으로 바뀌고, 계산 결과의 자릿수(log₁₀)만큼 깎여요. 체력과 물가는 다시 1막처럼 시작해요.`, `After Act ${CFG.logAct - 1}, the Dimension Ascent begins the log stage. HP becomes a power of ten, and the digits of your result (log₁₀) are your damage. HP and prices restart from the Act 1 curve.`)}</p>
     </details></div>`;
   const target = screen.querySelector('.node.reach');
   if (target) setTimeout(() => target.scrollIntoView({ block: 'center', behavior: reduceMotion ? 'auto' : 'smooth' }), 50);
@@ -1737,17 +1771,17 @@ function paintFight(screen) {
   if (!screen.querySelector('.fight') || screen.dataset.wide !== String(wide)) {
     screen.dataset.wide = String(wide);
     handEls.clear();
-    const rules = `<details><summary>규칙</summary>
-      <p>손패를 손가락으로 훑으면 카드가 커져요. 손을 떼면 그 카드를 수식 칸에 놓아요. 아래로 끌어내리면 취소돼요.</p>
-      <p>숫자 3장과 기호 2장까지 번갈아 놓아 수식을 만들어요. 왼쪽부터 순서대로 계산하고, 결과가 음수면 0이에요.</p>
-      <p>계산 결과만큼 몹에게 피해를 줘요. 계산 기회 안에 체력을 0으로 만들면 이겨요. 남은 계산과 버리기는 골드로 바뀌니 빨리 끝낼수록 이득이에요.</p>
-      <p>버리기는 수식 칸에 올린 카드를 버리고 새로 뽑아요. 카드는 숫자 덱과 기호 덱을 합친 곳에서 무작위로 뽑혀요.</p>
-      <p>정확(÷) 카드를 놓으면 그 뒤에 놓았을 때 나누어떨어지는 숫자 카드에 노란 후광이 생겨요.</p></details>`;
+    const rules = `<details><summary>${T('규칙', 'Rules')}</summary>
+      <p>${T('손패를 손가락으로 훑으면 카드가 커져요. 손을 떼면 그 카드를 수식 칸에 놓아요. 아래로 끌어내리면 취소돼요.', 'Slide across your hand to lift a card; let go to drop it into the equation. Drag down to cancel.')}</p>
+      <p>${T('숫자 3장과 기호 2장까지 번갈아 놓아 수식을 만들어요. 왼쪽부터 순서대로 계산하고, 결과가 음수면 0이에요.', 'Alternate up to 3 numbers and 2 operators. Equations are worked out left to right; a negative result counts as 0.')}</p>
+      <p>${T('계산 결과만큼 몹에게 피해를 줘요. 계산 기회 안에 체력을 0으로 만들면 이겨요. 남은 계산과 버리기는 골드로 바뀌니 빨리 끝낼수록 이득이에요.', 'The result is your damage. Bring the HP to zero within your calcs to win. Unused calcs and discards turn into gold, so finishing fast pays.')}</p>
+      <p>${T('버리기는 수식 칸에 올린 카드를 버리고 새로 뽑아요. 카드는 숫자 덱과 기호 덱을 합친 곳에서 무작위로 뽑혀요.', 'Discard throws away the cards in the equation and draws new ones, at random from your number and operator decks combined.')}</p>
+      <p>${T('정확(÷) 카드를 놓으면 그 뒤에 놓았을 때 나누어떨어지는 숫자 카드에 노란 후광이 생겨요.', 'After an Exact ÷ card, every number in your hand that divides evenly glows yellow.')}</p></details>`;
     const status = `<div class="status" aria-live="polite">
-      <div class="stage-row"><div><span class="mobname h"></span><span class="tag h" hidden></span></div><div class="target">체력 <b class="hp"></b></div></div>
+      <div class="stage-row"><div><span class="mobname h"></span><span class="tag h" hidden></span></div><div class="target">${T('체력', 'HP')} <b class="hp"></b></div></div>
       <div class="bar"><div class="fill"></div></div><div class="meta"></div></div>`;
     const board = `<div class="board"><div class="slots"></div><div><div class="preview"></div><div class="log" aria-live="polite"></div></div></div>`;
-    const hand = `<div class="hand" aria-label="손패"></div>`;
+    const hand = `<div class="hand" aria-label="${T('손패', 'Hand')}"></div>`;
     const actions = `<div class="actions"><button class="btn ghost disc" data-act="discard"></button><button class="btn play" data-act="play"></button></div>`
       + (R.hasPerk(G.run, 'sharpen') ? `<div class="perkbar"><button class="perkchip sharpen" data-act="sharpen"></button></div>` : '');
     screen.innerHTML = wide
@@ -1757,17 +1791,18 @@ function paintFight(screen) {
   }
   // 상태
   const left = Math.max(0, f.hpMax - (f.score - G.hiddenDamage));
-  screen.querySelector('.mobname').textContent = node.name;
+  screen.querySelector('.mobname').textContent = mobName(node.name);
   const tag = screen.querySelector('.tag');
   tag.hidden = node.type === 'mob';
   tag.textContent = NODE[node.type].name;
   screen.querySelector('.hp').textContent = `${R.hpText(run, left)} / ${R.hpText(run, f.hpMax)}`;
   screen.querySelector('.fill').style.width = `${Math.max(0, Math.min(1, left / f.hpMax)) * 100}%`;
-  screen.querySelector('.meta').innerHTML = `<span>계산 <b>${f.playsLeft}번</b></span><span>버리기 <b>${f.discLeft}번</b></span><span>숫자 덱 <b>${f.numDraw.length}장</b></span><span>기호 덱 <b>${f.opDraw.length}장</b></span>`;
+  screen.querySelector('.meta').innerHTML = T(`<span>계산 <b>${f.playsLeft}번</b></span><span>버리기 <b>${f.discLeft}번</b></span><span>숫자 덱 <b>${f.numDraw.length}장</b></span><span>기호 덱 <b>${f.opDraw.length}장</b></span>`,
+    `<span>Calcs <b>${f.playsLeft}</b></span><span>Discards <b>${f.discLeft}</b></span><span>Numbers <b>${f.numDraw.length}</b></span><span>Operators <b>${f.opDraw.length}</b></span>`);
   // 수식 칸
   const sel = G.selectedCards;
   const slots = screen.querySelector('.slots');
-  const slotKey = JSON.stringify([sel.map(c => [c.id, c.bonus]), G.tossing]);
+  const slotKey = JSON.stringify([sel.map(c => [c.id, c.bonus]), G.tossing, LANG]);
   if (slots.dataset.key !== slotKey) {
     slots.dataset.key = slotKey;
     let html = '';
@@ -1775,8 +1810,8 @@ function paintFight(screen) {
     for (let i = 0; i < CFG.maxLen; i++) {
       const c = sel[i];
       if (i === 0) html += `<span class="paren open${on}" aria-hidden="true"></span>`;
-      html += c ? `<button class="cardbtn${G.tossing ? ' toss' : ''}" style="animation-delay:${i * 40}ms" data-act="unselect" data-id="${c.id}" aria-label="${cardLabel(c)} 빼기">${cardHTML(c)}</button>`
-                : `<div class="ghostcard">${i % 2 === 0 ? '숫자' : '기호'}</div>`;
+      html += c ? `<button class="cardbtn${G.tossing ? ' toss' : ''}" style="animation-delay:${i * 40}ms" data-act="unselect" data-id="${c.id}" aria-label="${T(`${cardLabel(c)} 빼기`, `Remove ${cardLabel(c)}`)}">${cardHTML(c)}</button>`
+                : `<div class="ghostcard">${i % 2 === 0 ? T('숫자', 'Number') : T('기호', 'Operator')}</div>`;
       if (i === 2) html += `<span class="paren close${on}" aria-hidden="true"></span>`;
     }
     slots.innerHTML = html;
@@ -1785,32 +1820,32 @@ function paintFight(screen) {
   const pv = screen.querySelector('.preview');
   const v = G.validity(sel);
   if (G.previewOverride) { pv.className = 'preview'; pv.textContent = G.previewOverride; }
-  else if (v.ok) { const r = G.evaluate(sel, false); pv.className = 'preview ok'; pv.textContent = `= ${R.dmgText(run, r.final)}${r.hasLuck ? '  (행운 미포함)' : ''}`; }
+  else if (v.ok) { const r = G.evaluate(sel, false); pv.className = 'preview ok'; pv.textContent = `= ${R.dmgText(run, r.final)}${r.hasLuck ? T('  (행운 미포함)', '  (before Luck)') : ''}`; }
   else if (!G.busy && !(wide && !sel.length)) { pv.className = 'preview'; pv.textContent = v.msg; }
   else { pv.className = 'preview'; pv.textContent = ''; }
   paintLog(screen.querySelector('.log'), wide ? f.log.filter(l => l.style !== 'info') : f.log);
   // 처치 도장
   const board = screen.querySelector('.board');
   const stamp = board.querySelector('.stamp');
-  if (G.showStamp && !stamp) board.insertAdjacentHTML('beforeend', '<div class="stamp h">처치</div>');
+  if (G.showStamp && !stamp) board.insertAdjacentHTML('beforeend', `<div class="stamp h">${T('처치', 'Defeated!')}</div>`);
   if (!G.showStamp && stamp) stamp.remove();
   // 손패와 버튼
   paintHand(screen.querySelector('.hand'));
   const canPlay = !G.busy && v.ok && f.playsLeft > 0;
   const canDisc = !G.busy && f.sel.length > 0 && f.discLeft > 0;
   const disc = screen.querySelector('.disc'), play = screen.querySelector('.play');
-  disc.innerHTML = `버리기 ${tally(run.discards, f.discLeft)}`;
-  play.innerHTML = `계산하기 ${tally(run.plays, f.playsLeft)}`;
+  disc.innerHTML = `${T('버리기', 'Discard')} ${tally(run.discards, f.discLeft)}`;
+  play.innerHTML = `${T('계산하기', 'Calculate')} ${tally(run.plays, f.playsLeft)}`;
   disc.disabled = !canDisc;
   play.disabled = !canPlay;
   const sh = screen.querySelector('.sharpen');
   if (sh) {
     const ready = R.perkReady(run, 'sharpen');
-    sh.textContent = `✏️ 연필 깎기: 손패 새로 뽑기 ${ready ? '(이번 막 1번)' : '(이번 막에 씀)'}`;
+    sh.textContent = T(`✏️ 연필 깎기: 손패 새로 뽑기 ${ready ? '(이번 막 1번)' : '(이번 막에 씀)'}`, `✏️ Sharpen: redraw hand ${ready ? '(once this act)' : '(used this act)'}`);
     sh.disabled = G.busy || !ready;
   }
-  disc.setAttribute('aria-label', `버리기, ${f.discLeft}번 남음`);
-  play.setAttribute('aria-label', `계산하기, ${f.playsLeft}번 남음`);
+  disc.setAttribute('aria-label', T(`버리기, ${f.discLeft}번 남음`, `Discard, ${f.discLeft} left`));
+  play.setAttribute('aria-label', T(`계산하기, ${f.playsLeft}번 남음`, `Calculate, ${f.playsLeft} left`));
 }
 
 function logHTML(l) {
@@ -1897,7 +1932,7 @@ function paintHand(box) {
   // 사라진 카드 지우기
   for (const [id, el] of handEls) if (!cards.some(c => c.id === id)) { el.remove(); handEls.delete(id); }
   let empty = box.querySelector('.empty');
-  if (!cards.length && !empty) box.insertAdjacentHTML('beforeend', '<div class="empty">손패가 비었어요</div>');
+  if (!cards.length && !empty) box.insertAdjacentHTML('beforeend', `<div class="empty">${T('손패가 비었어요', 'Your hand is empty')}</div>`);
   if (cards.length && empty) empty.remove();
   const poses = fanLayout(cards.length);
   cards.forEach((c, i) => {
@@ -2028,23 +2063,29 @@ function paintShop(screen) {
   const items = shop.items.map(c => {
     const price = G.buyPrice(c);
     const t = trOf(c);
-    const extras = [t ? `${t.name} 변신 (계산 값 ${fmt(numVal(c))})` : '', ...c.enh.map(e => `${ENH[e].name}: ${ENH[e].desc}`)].filter(Boolean).join(' / ');
+    const extras = [t ? T(`${t.name} 변신 (계산 값 ${fmt(numVal(c))})`, `${t.name} transform (counts as ${fmt(numVal(c))})`) : '', ...c.enh.map(e => `${ENH[e].name}: ${ENH[e].desc}`)].filter(Boolean).join(' / ');
     const picking = shop.pendingID === c.id;
     return `<div class="item${picking ? ' picking' : ''}">${cardHTML(c, { noshadow: true })}
-      <span class="tx"><b>${cardLabel(c)}</b><small>${extras || (c.op === '*' ? '강화할 수 없는 곱셈 카드' : c.op === '^' ? `거듭제곱 카드 (지수는 ${CFG.powCap}까지)` : '강화 없는 기본 카드')}</small></span>
-      <button class="buy" data-act="pend" data-id="${c.id}" ${run.gold < price ? 'disabled' : ''}>${picking ? '고르는 중' : `${fmt(price)} 골드${coupon ? ' 🎟️' : ''}`}</button></div>`;
+      <span class="tx"><b>${cardLabel(c)}</b><small>${extras || (c.op === '*' ? T('강화할 수 없는 곱셈 카드', "A × card (can't be enhanced)") : c.op === '^' ? T(`거듭제곱 카드 (지수는 ${CFG.powCap}까지)`, `A power card (exponent capped at ${CFG.powCap})`) : T('강화 없는 기본 카드', 'A plain card'))}</small></span>
+      <button class="buy" data-act="pend" data-id="${c.id}" ${run.gold < price ? 'disabled' : ''}>${picking ? T('고르는 중', 'Choosing') : `${fmt(price)} ${T('골드', 'gold')}${coupon ? ' 🎟️' : ''}`}</button></div>`;
   }).join('');
   const swap = pend ? `<div style="display:grid; gap:8px" id="swapArea">
-      <p class="sect">${cardLabel(pend)}(${fmt(G.buyPrice(pend))} 골드)와 바꿀 ${pend.kind === 'num' ? '숫자' : '기호'} 카드를 고르세요</p>
-      <div class="deckgrid">${G.sortedDeck.filter(c => c.kind === pend.kind).map(c => `<button class="cardbtn" data-act="swap" data-id="${c.id}" aria-label="${cardLabel(c)}와 바꾸기">${cardHTML(c)}</button>`).join('')}</div>
-      <button class="btn ghost" data-act="cancelSwap">교환 취소</button></div>` : '';
+      <p class="sect">${T(`${cardLabel(pend)}(${fmt(G.buyPrice(pend))} 골드)와 바꿀 ${pend.kind === 'num' ? '숫자' : '기호'} 카드를 고르세요`, `Pick the ${pend.kind === 'num' ? 'number' : 'operator'} card to swap for ${cardLabel(pend)} (${fmt(G.buyPrice(pend))} gold)`)}</p>
+      <div class="deckgrid">${G.sortedDeck.filter(c => c.kind === pend.kind).map(c => `<button class="cardbtn" data-act="swap" data-id="${c.id}" aria-label="${T(`${cardLabel(c)}와 바꾸기`, `Swap out ${cardLabel(c)}`)}">${cardHTML(c)}</button>`).join('')}</div>
+      <button class="btn ghost" data-act="cancelSwap">${T('교환 취소', 'Cancel swap')}</button></div>` : '';
   screen.innerHTML = `<div style="display:flex; flex-direction:column; gap:12px">
-    <h3 class="shopt h">상점</h3><p class="sub">${shop.msg}${coupon ? ' 🎟️ 할인권: 이번 막 첫 구매가 30% 싸요.' : ''}</p>
-    ${R.hasPerk(run, 'restock') ? `<div class="perkbar"><button class="perkchip" data-act="restock" ${R.perkReady(run, 'restock') ? '' : 'disabled'}>🔄 재입고 ${R.perkReady(run, 'restock') ? '(무료, 이번 막 1번)' : '(이번 막에 씀)'}</button></div>` : ''}
-    <p class="sect">사기</p>
-    ${shop.items.length ? items : '<p class="sub">다 팔렸어요.</p>'}
+    <h3 class="shopt h">${T('상점', 'Shop')}</h3><p class="sub">${shop.msg}${coupon ? T(' 🎟️ 할인권: 이번 막 첫 구매가 30% 싸요.', ' 🎟️ Coupon: your first purchase this act is 30% off.') : ''}</p>
+    ${R.hasPerk(run, 'restock') ? `<div class="perkbar"><button class="perkchip" data-act="restock" ${R.perkReady(run, 'restock') ? '' : 'disabled'}>${T(`🔄 재입고 ${R.perkReady(run, 'restock') ? '(무료, 이번 막 1번)' : '(이번 막에 씀)'}`, `🔄 Restock ${R.perkReady(run, 'restock') ? '(free, once this act)' : '(used this act)'}`)}</button></div>` : ''}
+    <p class="sect">${T('사기', 'Buy')}</p>
+    ${shop.items.length ? items : `<p class="sub">${T('다 팔렸어요.', 'Sold out.')}</p>`}
     ${swap}
-    <button class="btn" data-act="leaveShop">상점 나가기</button></div>`;
+    <button class="btn" data-act="leaveShop">${T('상점 나가기', 'Leave shop')}</button></div>`;
+}
+
+// 언어 버튼: 바꿀 언어를 보여줘요 (한국어일 때 EN, 영어일 때 한)
+function paintLangButton(btn) {
+  if (!btn) return;
+  btn.textContent = LANG === 'ko' ? 'EN' : '한';
 }
 
 function paintSoundButton(btn) {
@@ -2056,9 +2097,9 @@ function paintSoundButton(btn) {
 function soundHTML() {
   const row = (kind, title, desc) => `<button class="toggle${Sound.state[kind] ? ' on' : ''}" data-act="toggleSound" data-k="${kind}" role="switch" aria-checked="${Sound.state[kind]}">
     <span><b>${title}</b><small>${desc}</small></span><span class="switch"></span></button>`;
-  return `<div class="overlay" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true">${sheetHead('소리', '이 기기에서만 기억해요.')}
-    ${row('music', '배경음', '잔잔한 모눈종이 음악')}
-    ${row('sfx', '효과음', '카드, 계산, 동전, 종소리')}</div></div>`;
+  return `<div class="overlay" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true">${sheetHead(T('소리', 'Sound'), T('이 기기에서만 기억해요.', 'Remembered on this device only.'))}
+    ${row('music', T('배경음', 'Music'), T('잔잔한 모눈종이 음악', 'Calm notebook music'))}
+    ${row('sfx', T('효과음', 'Sound effects'), T('카드, 계산, 동전, 종소리', 'Cards, calculations, coins, bells'))}</div></div>`;
 }
 
 function introHTML(it) {
@@ -2077,16 +2118,16 @@ function perksHTML() {
   const unlocked = p.perksUnlocked || [];
   const rows = PERKS.map(k => {
     const open = unlocked.includes(k.key), on = mine.includes(k.key);
-    const tag = !open ? `${depthText(k.depth)} 도달 시 해금` : on ? '이번 판' : '';
+    const tag = !open ? T(`${depthText(k.depth)} 도달 시 해금`, `Unlocks at ${depthText(k.depth)}`) : on ? T('이번 판', 'This run') : '';
     return `<div class="perk${on ? ' on' : ''}${open ? '' : ' locked'}">
       <span class="ic">${open ? k.icon : '🔒'}</span><span class="tx"><b>${k.name}</b><small>${k.desc}</small></span><em>${tag}</em></div>`;
   }).join('');
   const note = inRun
-    ? `이번 판에 장착한 퍽은 ${mine.length}개예요. 판이 끝나야 바꿀 수 있어요.`
-    : `새 게임을 시작할 때 ${PERK_SLOTS}개까지 골라요.`;
+    ? T(`이번 판에 장착한 퍽은 ${mine.length}개예요. 판이 끝나야 바꿀 수 있어요.`, `${mine.length} perk(s) equipped this run. You can change them once the run ends.`)
+    : T(`새 게임을 시작할 때 ${PERK_SLOTS}개까지 골라요.`, `Pick up to ${PERK_SLOTS} when you start a new game.`);
   return `<div class="overlay" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true">
-    ${sheetHead('퍽', `슬롯 ${slot + 1} · 해금 ${unlocked.length}/${PERKS.length}`)}
-    <p class="sub">${note} 더 깊이 내려갈수록 하나씩 해금돼요 (최고 ${depthText(Math.max(1, p.stats.maxDepth || 0))}).</p>${rows}</div></div>`;
+    ${sheetHead(T('퍽', 'Perks'), T(`슬롯 ${slot + 1} · 해금 ${unlocked.length}/${PERKS.length}`, `Slot ${slot + 1} · Unlocked ${unlocked.length}/${PERKS.length}`))}
+    <p class="sub">${note} ${T(`더 깊이 내려갈수록 하나씩 해금돼요 (최고 ${depthText(Math.max(1, p.stats.maxDepth || 0))}).`, `Go deeper to unlock more (best: ${depthText(Math.max(1, p.stats.maxDepth || 0))}).`)}</p>${rows}</div></div>`;
 }
 
 // 새 게임을 시작하기 전에 퍽을 골라요. 해금한 퍽이 없으면 바로 시작해요
@@ -2106,20 +2147,20 @@ function pickHTML() {
   const eq = p.equipped || [], unlocked = p.perksUnlocked || [];
   const rows = PERKS.filter(k => unlocked.includes(k.key)).map(k => {
     const on = eq.includes(k.key);
-    const tag = on ? '장착' : eq.length >= PERK_SLOTS ? '' : '고르기';
+    const tag = on ? T('장착', 'Equipped') : eq.length >= PERK_SLOTS ? '' : T('고르기', 'Pick');
     return `<button class="perk${on ? ' on' : ''}" data-act="equip" data-k="${k.key}" aria-pressed="${on}">
       <span class="ic">${k.icon}</span><span class="tx"><b>${k.name}</b><small>${k.desc}</small></span><em>${tag}</em></button>`;
   }).join('');
   const locked = PERKS.length - unlocked.length;
   return `<div class="overlay" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true">
-    ${sheetHead('퍽 고르기', `이번 판에 쓸 퍽을 ${PERK_SLOTS}개까지 골라요 (${eq.length}/${PERK_SLOTS}). 판이 끝날 때까지 바꿀 수 없어요.`, 'closeSheet')}
-    ${rows}${locked ? `<p class="sub">아직 잠긴 퍽 ${locked}개는 더 깊이 내려가면 해금돼요.</p>` : ''}
-    <button class="btn" data-act="pickStart">${eq.length ? `이 퍽 ${eq.length}개로 시작` : '퍽 없이 시작'}</button></div></div>`;
+    ${sheetHead(T('퍽 고르기', 'Pick perks'), T(`이번 판에 쓸 퍽을 ${PERK_SLOTS}개까지 골라요 (${eq.length}/${PERK_SLOTS}). 판이 끝날 때까지 바꿀 수 없어요.`, `Pick up to ${PERK_SLOTS} perks for this run (${eq.length}/${PERK_SLOTS}). They're locked until the run ends.`), 'closeSheet')}
+    ${rows}${locked ? `<p class="sub">${T(`아직 잠긴 퍽 ${locked}개는 더 깊이 내려가면 해금돼요.`, `${locked} more perk(s) unlock as you go deeper.`)}</p>` : ''}
+    <button class="btn" data-act="pickStart">${eq.length ? T(`이 퍽 ${eq.length}개로 시작`, `Start with ${eq.length} perk(s)`) : T('퍽 없이 시작', 'Start without perks')}</button></div></div>`;
 }
 
 // ----- 시트와 오버레이 -----
 function sheetHead(title, sub, closeAct = 'closeSheet') {
-  return `<div class="sheet-head"><h2 class="h">${title}</h2><button class="chip" data-act="${closeAct}">닫기</button></div>${sub ? `<p class="sub">${sub}</p>` : ''}`;
+  return `<div class="sheet-head"><h2 class="h">${title}</h2><button class="chip" data-act="${closeAct}">${T('닫기', 'Close')}</button></div>${sub ? `<p class="sub">${sub}</p>` : ''}`;
 }
 
 function paintOverlays() {
@@ -2137,7 +2178,7 @@ function paintOverlays() {
   if (ui.confirm) want.push(['confirm', `<div class="overlay dialog" data-act="cancelConfirm"><div class="sheet" role="alertdialog" aria-modal="true">
       <h3>${ui.confirm.title}</h3>${ui.confirm.msg ? `<p class="sub">${ui.confirm.msg}</p>` : ''}
       <button class="btn" style="background:var(--red); border-color:var(--red)" data-act="okConfirm">${ui.confirm.ok}</button>
-      <button class="btn ghost" data-act="cancelConfirm">취소</button></div></div>`]);
+      <button class="btn ghost" data-act="cancelConfirm">${T('취소', 'Cancel')}</button></div></div>`]);
   // 열려 있던 시트는 그대로 두고 안쪽만 바꿔서, 다시 나타나는 애니메이션(깜빡임)과 스크롤 초기화를 막아요
   const keep = new Map([...root.children].map(el => [el.dataset.key, el]));
   want.forEach(([key, html], i) => {
@@ -2168,21 +2209,22 @@ function paintOverlays() {
 function rewardHTML() {
   const run = G.run, rw = run.reward, g = run.lastGold;
   const wide = isWide();
-  let summary = `<div class="sheet-head"><h2 class="h">${rw.count > 1 ? `특전 ${rw.idx}/${rw.count}` : '처치'}</h2><button class="chip" data-act="sheet" data-s="deck">덱 보기</button></div>`;
+  let summary = `<div class="sheet-head"><h2 class="h">${rw.count > 1 ? T(`특전 ${rw.idx}/${rw.count}`, `Upgrade ${rw.idx}/${rw.count}`) : T('처치', 'Defeated!')}</h2><button class="chip" data-act="sheet" data-s="deck">${T('덱 보기', 'Deck')}</button></div>`;
   const best = run.fight && run.fight.best;
-  if (best) summary += `<div class="best"><p class="sect">이번 전투 최고 일격</p><div class="bestrow">${best.cards.map((c, i) => `${i === 0 && best.cards.length === 5 ? '<span class="bp">(</span>' : ''}<div class="bc">${cardHTML(c, { noshadow: true, size: 22 })}</div>${i === 2 && best.cards.length === 5 ? '<span class="bp">)</span>' : ''}`).join('')}<b class="h">= ${R.dmgText(run, best.final)}</b></div></div>`;
+  if (best) summary += `<div class="best"><p class="sect">${T('이번 전투 최고 일격', 'Best hit this fight')}</p><div class="bestrow">${best.cards.map((c, i) => `${i === 0 && best.cards.length === 5 ? '<span class="bp">(</span>' : ''}<div class="bc">${cardHTML(c, { noshadow: true, size: 22 })}</div>${i === 2 && best.cards.length === 5 ? '<span class="bp">)</span>' : ''}`).join('')}<b class="h">= ${R.dmgText(run, best.final)}</b></div></div>`;
   if (rw.idx === 1 && g) {
     const pct = rnd(g.over / g.hp * 100);
     const row = (t, v) => `<div class="gb"><span>${t}</span><b>${fmt(v)}</b></div>`;
-    summary += `<div class="box">${row('처치 보상', g.g1)}${row(`초과 피해 ${fmt(g.over)} (체력의 ${pct}%, 상한 ${fmt(g.cap ?? rnd(overkillCap(g.hp, g.type)))})`, g.g2)}
-      ${row(`남은 계산 ${g.plays}번 × ${fmt(g.ratePlay)}`, g.g4)}${row(`남은 버리기 ${g.disc}번 × ${fmt(g.rateDisc)}`, g.g3)}
-      <div class="gb sum"><span>합계</span><b>+${fmt(g.gain)}</b></div></div><p class="sub">특전 하나를 고르세요.</p>`;
-  } else summary += `<p class="sub">하나 더 고르세요.</p>`;
+    const cap = fmt(g.cap ?? rnd(overkillCap(g.hp, g.type)));
+    summary += `<div class="box">${row(T('처치 보상', 'Kill reward'), g.g1)}${row(T(`초과 피해 ${fmt(g.over)} (체력의 ${pct}%, 상한 ${cap})`, `Overkill ${fmt(g.over)} (${pct}% of HP, cap ${cap})`), g.g2)}
+      ${row(T(`남은 계산 ${g.plays}번 × ${fmt(g.ratePlay)}`, `Unused calcs ${g.plays} × ${fmt(g.ratePlay)}`), g.g4)}${row(T(`남은 버리기 ${g.disc}번 × ${fmt(g.rateDisc)}`, `Unused discards ${g.disc} × ${fmt(g.rateDisc)}`), g.g3)}
+      <div class="gb sum"><span>${T('합계', 'Total')}</span><b>+${fmt(g.gain)}</b></div></div><p class="sub">${T('특전 하나를 고르세요.', 'Pick an upgrade.')}</p>`;
+  } else summary += `<p class="sub">${T('하나 더 고르세요.', 'Pick one more.')}</p>`;
   const offers = rw.offers.map(o => {
     const c = o.cardID != null ? R.card(run, o.cardID) : null;
     const vis = c ? cardHTML(c, { noshadow: true }) : `<span class="rule h">${o.glyph}</span>`;
     return `<button class="offer" data-act="choose" data-id="${o.id}"><span class="vis">${vis}</span><span class="tx"><b>${o.title}</b><small>${o.desc}</small></span></button>`;
-  }).join('') + (R.hasPerk(run, 'reroll') ? `<div class="perkbar"><button class="perkchip" data-act="reroll" ${R.perkReady(run, 'reroll') ? '' : 'disabled'}>🎲 다시 뽑기 ${R.perkReady(run, 'reroll') ? '(이번 막 1번)' : '(이번 막에 씀)'}</button></div>` : '');
+  }).join('') + (R.hasPerk(run, 'reroll') ? `<div class="perkbar"><button class="perkchip" data-act="reroll" ${R.perkReady(run, 'reroll') ? '' : 'disabled'}>${T(`🎲 다시 뽑기 ${R.perkReady(run, 'reroll') ? '(이번 막 1번)' : '(이번 막에 씀)'}`, `🎲 Reroll ${R.perkReady(run, 'reroll') ? '(once this act)' : '(used this act)'}`)}</button></div>` : '');
   const body = wide
     ? `<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start"><div class="rw">${summary}</div><div class="rw">${offers}</div></div>`
     : `<div class="rw">${summary}${offers}</div>`;
@@ -2192,26 +2234,26 @@ function rewardHTML() {
 function gameOverHTML() {
   const run = G.run, info = run.over, p = G.profile;
   return `<div class="overlay"><div class="sheet" role="dialog" aria-modal="true">
-    <div class="sheet-head"><h2 class="h">여기까지</h2></div>
+    <div class="sheet-head"><h2 class="h">${T('여기까지', 'Run over')}</h2></div>
     <p class="sub">${info.reason}</p>
-    ${info.newRecord ? '<p class="newrec h">새 기록!</p>' : ''}
+    ${info.newRecord ? `<p class="newrec h">${T('새 기록!', 'New record!')}</p>` : ''}
     <dl class="stats">
-      <dt>도달 위치</dt><dd>${run.act}막 ${run.floor}층</dd>
-      <dt>처치한 몹</dt><dd>${run.kills}</dd>
-      <dt>최고 한 방</dt><dd>${fmt(run.bestPlay)}</dd>
-      <dt>모은 골드</dt><dd>${fmt(run.goldTotal)}</dd>
-      <dt>역대 기록</dt><dd>${p.bestDepth}층, 한 방 ${fmt(p.bestSingle)}</dd>
+      <dt>${T('도달 위치', 'Reached')}</dt><dd>${R.whereText(run)}</dd>
+      <dt>${T('처치한 몹', 'Monsters defeated')}</dt><dd>${run.kills}</dd>
+      <dt>${T('최고 한 방', 'Best hit')}</dt><dd>${fmt(run.bestPlay)}</dd>
+      <dt>${T('모은 골드', 'Gold earned')}</dt><dd>${fmt(run.goldTotal)}</dd>
+      <dt>${T('역대 기록', 'All-time best')}</dt><dd>${T(`${p.bestDepth}층, 한 방 ${fmt(p.bestSingle)}`, `Floor ${p.bestDepth}, hit ${fmt(p.bestSingle)}`)}</dd>
     </dl>
-    <button class="btn" data-act="restart">새 게임 시작</button>
-    <button class="btn ghost" data-act="toMenu">메인 화면으로</button></div></div>`;
+    <button class="btn" data-act="restart">${T('새 게임 시작', 'New game')}</button>
+    <button class="btn ghost" data-act="toMenu">${T('메인 화면으로', 'Main menu')}</button></div></div>`;
 }
 
 function deckHTML() {
   const run = G.run, deck = G.sortedDeck;
   const nums = deck.filter(c => c.kind === 'num'), ops = deck.filter(c => c.kind === 'op');
   const inFight = run.phase === 'fight' && !run.reward && run.fight;
-  const sub = inFight ? `이번 전투에서 뽑을 카드: 숫자 ${run.fight.numDraw.length}장, 기호 ${run.fight.opDraw.length}장 / 덱 ${run.deck.length}장. 회색은 손패에 있거나 이미 쓴 카드예요.`
-                      : `손패 ${run.hand}장, 계산 ${run.plays}번, 버리기 ${run.discards}번 / 덱 ${run.deck.length}장`;
+  const sub = inFight ? T(`이번 전투에서 뽑을 카드: 숫자 ${run.fight.numDraw.length}장, 기호 ${run.fight.opDraw.length}장 / 덱 ${run.deck.length}장. 회색은 손패에 있거나 이미 쓴 카드예요.`, `Left to draw this fight: ${run.fight.numDraw.length} numbers, ${run.fight.opDraw.length} operators / deck ${run.deck.length}. Greyed-out cards are in your hand or already used.`)
+                      : T(`손패 ${run.hand}장, 계산 ${run.plays}번, 버리기 ${run.discards}번 / 덱 ${run.deck.length}장`, `Hand ${run.hand}, calcs ${run.plays}, discards ${run.discards} / deck ${run.deck.length}`);
   // 전투 중에는 버리기로 새로 나올 수 있는 카드만 원래 색이에요 (뽑을 덱이 비면 버린 더미를 섞어 다시 써요)
   let drawable = null;
   if (inFight) {
@@ -2220,17 +2262,17 @@ function deckHTML() {
   }
   const grid = (t, cs) => `<p class="sect">${t}</p><div class="deckgrid">${cs.map(c => `<button class="cardbtn" data-act="info" data-id="${c.id}">${cardHTML(c, { extra: drawable && !drawable.has(c.id) ? 'dim' : '' })}</button>`).join('')}</div>`;
   const r = R.leftoverRate(run), e = R.econ(run);
-  const legend = ENH_KEYS.map(k => `<li><b class="${isOpPerk(k) ? 'r' : ''}">${ENH[k].badge}</b>  ${ENH[k].name}${ENH[k].op ? ` (${SYM[ENH[k].op]} 카드)` : ''}: ${ENH[k].desc}</li>`).join('')
-    + TR.map(t => `<li><b>${t.txt('n')}</b>  ${t.name} 변신 (${t.act}막부터${t.special ? ' 보스 보상' : ''}${run.act >= t.act ? ', 해금됨' : ''}): 숫자 n을 ${t.txt('n')}으로 계산해요. n은 ${t.cap}까지만 적용돼요</li>`).join('')
-    + '<li>× 카드는 강력한 대신 강화할 수 없어요.</li>'
-    + `<li><b class="r">^</b>  거듭제곱 카드 (6막부터 × 카드가 진화): 지수는 ${CFG.powCap}까지예요.</li>`
-    + (R.isLog(run) ? '<li>로그 단계: 체력은 10의 거듭제곱이고, 계산 결과의 자릿수(log₁₀)에 강화 효과가 붙어 피해가 돼요.</li>' : '')
-    + `<li>골드(지금 층 기준): 처치 ${fmt(rnd(CFG.killGold * e))} + 초과 피해 골드(일반 몹 기준 최대 ${fmt(rnd(CFG.goldCap * e))}) + 남은 계산당 ${fmt(r.play)} + 남은 버리기당 ${fmt(r.disc)}. 지금 물가 ${fmt(e)}배.</li>`;
-  const perks = (run.perks || []).map(k => { const x = perkOf(k); return `<li><b>${x.icon} ${x.name}</b>  ${x.desc}${['restock', 'coupon', 'reroll', 'sharpen', 'grit'].includes(k) ? (R.perkReady(run, k) ? ' (이번 막에 아직 안 씀)' : ' (이번 막에 씀)') : ''}</li>`; }).join('');
-  return `<div class="overlay" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true">${sheetHead('내 덱', sub)}
-    ${perks ? `<p class="sect">장착한 퍽</p><ul class="legend">${perks}</ul>` : ''}
-    ${grid(`숫자 덱 ${nums.length}장`, nums)}${grid(`기호 덱 ${ops.length}장`, ops)}
-    <div class="box" style="min-height:40px">${ui.info || '카드를 누르면 설명이 보여요.'}</div>
+  const legend = ENH_KEYS.map(k => `<li><b class="${isOpPerk(k) ? 'r' : ''}">${ENH[k].badge}</b>  ${ENH[k].name}${ENH[k].op ? T(` (${SYM[ENH[k].op]} 카드)`, ` (${SYM[ENH[k].op]} card)`) : ''}: ${ENH[k].desc}</li>`).join('')
+    + TR.map(t => `<li><b>${t.txt('n')}</b>  ${T(`${t.name} 변신 (${t.act}막부터${run.act >= t.act ? ', 해금됨' : ''}): 숫자 n을 ${t.txt('n')}으로 계산해요. n은 ${t.cap}까지만 적용돼요`, `${t.name} transform (from Act ${t.act}${run.act >= t.act ? ', unlocked' : ''}): turns n into ${t.txt('n')}, for n up to ${t.cap}`)}</li>`).join('')
+    + `<li>${T('× 카드는 강력한 대신 강화할 수 없어요.', "× cards are powerful but can't be enhanced.")}</li>`
+    + `<li><b class="r">^</b>  ${T(`거듭제곱 카드 (6막부터 × 카드가 진화): 지수는 ${CFG.powCap}까지예요.`, `Power card (evolves from × from Act 6): exponent capped at ${CFG.powCap}.`)}</li>`
+    + (R.isLog(run) ? `<li>${T('로그 단계: 체력은 10의 거듭제곱이고, 계산 결과의 자릿수(log₁₀)에 강화 효과가 붙어 피해가 돼요.', 'Log stage: HP is a power of ten; the digits of your result (log₁₀), plus enhancements, are your damage.')}</li>` : '')
+    + `<li>${T(`골드(지금 층 기준): 처치 ${fmt(rnd(CFG.killGold * e))} + 초과 피해 골드(일반 몹 기준 최대 ${fmt(rnd(CFG.goldCap * e))}) + 남은 계산당 ${fmt(r.play)} + 남은 버리기당 ${fmt(r.disc)}. 지금 물가 ${fmt(e)}배.`, `Gold (this floor): kill ${fmt(rnd(CFG.killGold * e))} + overkill (up to ${fmt(rnd(CFG.goldCap * e))} for a regular monster) + ${fmt(r.play)} per unused calc + ${fmt(r.disc)} per unused discard. Price level ${fmt(e)}×.`)}</li>`;
+  const perks = (run.perks || []).map(k => { const x = perkOf(k); return `<li><b>${x.icon} ${x.name}</b>  ${x.desc}${['restock', 'coupon', 'reroll', 'sharpen', 'grit'].includes(k) ? (R.perkReady(run, k) ? T(' (이번 막에 아직 안 씀)', ' (not used this act)') : T(' (이번 막에 씀)', ' (used this act)')) : ''}</li>`; }).join('');
+  return `<div class="overlay" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true">${sheetHead(T('내 덱', 'My deck'), sub)}
+    ${perks ? `<p class="sect">${T('장착한 퍽', 'Equipped perks')}</p><ul class="legend">${perks}</ul>` : ''}
+    ${grid(T(`숫자 덱 ${nums.length}장`, `Number deck: ${nums.length} cards`), nums)}${grid(T(`기호 덱 ${ops.length}장`, `Operator deck: ${ops.length} cards`), ops)}
+    <div class="box" style="min-height:40px">${ui.info || T('카드를 누르면 설명이 보여요.', 'Tap a card to see what it does.')}</div>
     <ul class="legend">${legend}</ul></div></div>`;
 }
 
@@ -2240,16 +2282,16 @@ function achievementsHTML() {
   const rows = ACHIEVEMENTS.map(a => {
     const date = p.achievements[a.id];
     return `<div class="ach${date ? ' got' : ''}"><span class="ic">${date ? a.icon : '🔒'}</span><span><b>${a.title}</b><small>${a.desc}</small>
-      ${date ? `<em>${new Date(date).toLocaleDateString('ko-KR', { dateStyle: 'medium' })} 달성</em>` : ''}</span></div>`;
+      ${date ? `<em>${T(`${new Date(date).toLocaleDateString(locale(), { dateStyle: 'medium' })} 달성`, `Unlocked ${new Date(date).toLocaleDateString(locale(), { dateStyle: 'medium' })}`)}</em>` : ''}</span></div>`;
   }).join('');
   return `<div class="overlay" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true">
-    ${sheetHead('업적', `슬롯 ${slot + 1} · ${Object.keys(p.achievements).length}/${ACHIEVEMENTS.length} 달성`)}
+    ${sheetHead(T('업적', 'Achievements'), T(`슬롯 ${slot + 1} · ${Object.keys(p.achievements).length}/${ACHIEVEMENTS.length} 달성`, `Slot ${slot + 1} · ${Object.keys(p.achievements).length}/${ACHIEVEMENTS.length} unlocked`))}
     <dl class="stats small box">
-      <dt>최고 기록</dt><dd>${p.bestDepth}층, 한 방 ${fmt(p.bestSingle)}</dd>
-      <dt>끝낸 게임</dt><dd>${s.runsFinished}판</dd>
-      <dt>누적 처치</dt><dd>${s.kills}마리 (정예 ${s.eliteKills}, 보스 ${s.bossKills})</dd>
-      <dt>최고 한 방</dt><dd>${fmt(s.maxHit)}</dd>
-      <dt>상점 구매</dt><dd>${s.cardsBought}장</dd>
+      <dt>${T('최고 기록', 'Best')}</dt><dd>${T(`${p.bestDepth}층, 한 방 ${fmt(p.bestSingle)}`, `Floor ${p.bestDepth}, hit ${fmt(p.bestSingle)}`)}</dd>
+      <dt>${T('끝낸 게임', 'Runs finished')}</dt><dd>${T(`${s.runsFinished}판`, `${s.runsFinished}`)}</dd>
+      <dt>${T('누적 처치', 'Total kills')}</dt><dd>${T(`${s.kills}마리 (정예 ${s.eliteKills}, 보스 ${s.bossKills})`, `${s.kills} (elites ${s.eliteKills}, bosses ${s.bossKills})`)}</dd>
+      <dt>${T('최고 한 방', 'Best hit')}</dt><dd>${fmt(s.maxHit)}</dd>
+      <dt>${T('상점 구매', 'Cards bought')}</dt><dd>${T(`${s.cardsBought}장`, `${s.cardsBought}`)}</dd>
     </dl>${rows}</div></div>`;
 }
 
@@ -2260,14 +2302,14 @@ function collectionHTML() {
   const found = collectionCount(p);
   const section = (title, prefix) => `<p class="sect">${title}</p><div class="colgrid">${CATALOG.filter(e => e.key.startsWith(prefix)).map(e => {
     const owned = have.has(e.key);
-    return `<button class="colcell" data-act="colInfo" data-k="${e.key}" aria-label="${owned ? e.title : '미발견 카드'}">
+    return `<button class="colcell" data-act="colInfo" data-k="${e.key}" aria-label="${owned ? e.title : T('미발견 카드', 'Undiscovered card')}">
       ${owned ? cardHTML(e.sample, { fire: 10 }) : '<div class="ghostcard">?</div>'}<span>${owned ? e.title : '???'}</span></button>`;
   }).join('')}</div>`;
   return `<div class="overlay" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true">
-    ${sheetHead('카드 도감', `슬롯 ${slot + 1} · ${found}/${CATALOG.length} 수집`)}
+    ${sheetHead(T('카드 도감', 'Collection'), T(`슬롯 ${slot + 1} · ${found}/${CATALOG.length} 수집`, `Slot ${slot + 1} · ${found}/${CATALOG.length} found`))}
     <div class="progress"><div style="width:${found / CATALOG.length * 100}%"></div></div>
-    <div class="box" style="min-height:40px">${ui.info || '카드를 누르면 설명이 보여요. 덱에 들어온 카드가 도감에 기록돼요.'}</div>
-    ${section('숫자', 'num-')}${section('기호', 'op-')}${section('강화', 'enh-')}${section('변신', 'tr-')}</div></div>`;
+    <div class="box" style="min-height:40px">${ui.info || T('카드를 누르면 설명이 보여요. 덱에 들어온 카드가 도감에 기록돼요.', 'Tap a card to see what it does. Cards are recorded when they enter your deck.')}</div>
+    ${section(T('숫자', 'Numbers'), 'num-')}${section(T('기호', 'Operators'), 'op-')}${section(T('강화', 'Enhancements'), 'enh-')}${section(T('변신', 'Transforms'), 'tr-')}</div></div>`;
 }
 
 // ----- 알림 -----
@@ -2305,14 +2347,14 @@ const actions = {
   slot: el => { ui.selectedSlot = +el.dataset.i; try { localStorage.setItem('sempan-selectedSlot', ui.selectedSlot); } catch (e) {} paint(); },
   delSlot: el => {
     const i = +el.dataset.i;
-    ui.confirm = { title: `슬롯 ${i + 1}을 지울까요?`, msg: '진행 중인 게임, 기록, 업적, 카드 도감이 모두 지워져요.', ok: '지우기', run: () => Store.delete(i) };
+    ui.confirm = { title: T(`슬롯 ${i + 1}을 지울까요?`, `Delete slot ${i + 1}?`), msg: T('진행 중인 게임, 기록, 업적, 카드 도감이 모두 지워져요.', 'The game in progress, records, achievements and collection will all be erased.'), ok: T('지우기', 'Delete'), run: () => Store.delete(i) };
     paint();
   },
   continue: () => openGame(ui.selectedSlot, false),
   start: () => { const slot = ui.selectedSlot; pickPerksThen(slot, () => openGame(slot, true)); },
   newGameAsk: () => {
     const slot = ui.selectedSlot;
-    ui.confirm = { title: `슬롯 ${slot + 1}에 진행 중인 게임이 있어요`, msg: '', ok: '새 게임 시작 (진행 중인 판은 사라져요)', run: () => pickPerksThen(slot, () => openGame(slot, true)) };
+    ui.confirm = { title: T(`슬롯 ${slot + 1}에 진행 중인 게임이 있어요`, `Slot ${slot + 1} has a game in progress`), msg: '', ok: T('새 게임 시작 (진행 중인 판은 사라져요)', 'Start a new game (the current run will be lost)'), run: () => pickPerksThen(slot, () => openGame(slot, true)) };
     paint();
   },
   pickStart: () => { const start = ui.pick && ui.pick.start; ui.sheet = null; ui.pick = null; if (start) start(); paint(); },
@@ -2324,7 +2366,7 @@ const actions = {
   colInfo: el => {
     const p = Store.profile(G ? G.slot : ui.selectedSlot);
     const e = CATALOG.find(x => x.key === el.dataset.k);
-    ui.info = p.collection.includes(e.key) ? `${e.title}: ${e.desc}` : '아직 발견하지 못한 카드예요.';
+    ui.info = p.collection.includes(e.key) ? `${e.title}: ${e.desc}` : T('아직 발견하지 못한 카드예요.', "You haven't found this card yet.");
     paint();
   },
   exit: () => exitGame(),
@@ -2332,6 +2374,14 @@ const actions = {
   restart: () => pickPerksThen(G.slot, () => G.newGame()),
   node: el => { const n = R.node(G.run, el.dataset.id); if (n) G.enterNode(n).then(paint); },
   toggleSound: el => { Sound.toggle(el.dataset.k); paint(); },
+  lang: () => {
+    LANG = LANG === 'ko' ? 'en' : 'ko';
+    try { localStorage.setItem('sempan-lang', LANG); } catch (e) {}
+    applyLang();
+    // 화면을 처음부터 다시 그려요 (손패 카드 요소도 새로)
+    lastScreen = null;
+    paint();
+  },
   unselect: el => unselectCard(+el.dataset.id),
   play: () => G.play(),
   discard: () => G.discard(),
@@ -2382,6 +2432,11 @@ window.sempanBack = function () {
   return false;
 };
 
+function applyLang() {
+  document.documentElement.lang = LANG;
+  document.title = T('셈판', 'Sempan');
+}
+applyLang();
 Store.load();
 paint();
 // 저장 슬롯이 브라우저 정리로 지워지지 않게 영구 저장을 요청해요 (지원하는 브라우저만)

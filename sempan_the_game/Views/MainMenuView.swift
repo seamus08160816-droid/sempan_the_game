@@ -33,21 +33,25 @@ struct MainMenuView: View {
             .scrollBounceBehavior(.basedOnSize)
         }
         .overlay(alignment: .topTrailing) {
-            SoundButton { showSound = true }.padding(20)
+            HStack(spacing: 6) {
+                LangButton()
+                SoundButton { showSound = true }
+            }
+            .padding(20)
         }
         .sheet(isPresented: $showSound) { SoundSettingsSheet() }
-        .confirmationDialog("슬롯 \(selected + 1)에 진행 중인 게임이 있어요", isPresented: $confirmNewGame, titleVisibility: .visible) {
-            Button("새 게임 시작 (진행 중인 판은 사라져요)", role: .destructive) { begin() }
-            Button("취소", role: .cancel) {}
+        .confirmationDialog(L("슬롯 \(selected + 1)에 진행 중인 게임이 있어요", "Slot \(selected + 1) has a game in progress"), isPresented: $confirmNewGame, titleVisibility: .visible) {
+            Button(L("새 게임 시작 (진행 중인 판은 사라져요)", "Start a new game (the current run will be lost)"), role: .destructive) { begin() }
+            Button(L("취소", "Cancel"), role: .cancel) {}
         }
-        .alert("슬롯 \((confirmDelete ?? 0) + 1)을 지울까요?", isPresented: Binding(get: { confirmDelete != nil }, set: { if !$0 { confirmDelete = nil } })) {
-            Button("지우기", role: .destructive) {
+        .alert(L("슬롯 \((confirmDelete ?? 0) + 1)을 지울까요?", "Delete slot \((confirmDelete ?? 0) + 1)?"), isPresented: Binding(get: { confirmDelete != nil }, set: { if !$0 { confirmDelete = nil } })) {
+            Button(L("지우기", "Delete"), role: .destructive) {
                 if let i = confirmDelete { store.delete(i) }
                 confirmDelete = nil
             }
-            Button("취소", role: .cancel) { confirmDelete = nil }
+            Button(L("취소", "Cancel"), role: .cancel) { confirmDelete = nil }
         } message: {
-            Text("진행 중인 게임, 기록, 업적, 카드 도감이 모두 지워져요.")
+            Text(L("진행 중인 게임, 기록, 업적, 카드 도감이 모두 지워져요.", "The game in progress, records, achievements and collection will all be deleted."))
         }
         .sheet(isPresented: $showAchievements) { AchievementsView(profile: profile, slot: selected) }
         .sheet(isPresented: $showCollection) { CollectionView(profile: profile, slot: selected) }
@@ -61,11 +65,11 @@ struct MainMenuView: View {
 
     private var title: some View {
         VStack(spacing: 6) {
-            Text("셈판")
+            Text(L("셈판", "Sempan"))
                 .font(.hand(72))
                 .foregroundStyle(Theme.ink)
                 .padding(.top, 30)
-            Text("숫자와 기호로 수식을 만들어 몹을 쓰러뜨리는 카드 로그라이크")
+            Text(L("숫자와 기호로 수식을 만들어 몹을 쓰러뜨리는 카드 로그라이크", "A card roguelike where you build equations from numbers and operators to defeat monsters"))
                 .font(.subheadline)
                 .foregroundStyle(Theme.muted)
                 .multilineTextAlignment(.center)
@@ -84,7 +88,7 @@ struct MainMenuView: View {
 
     private var slots: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("저장 슬롯").font(.footnote.weight(.semibold)).foregroundStyle(Theme.muted)
+            Text(L("저장 슬롯", "Save slots")).font(.footnote.weight(.semibold)).foregroundStyle(Theme.muted)
             ForEach(0..<SaveStore.slotCount, id: \.self) { i in
                 slotRow(i)
             }
@@ -105,19 +109,19 @@ struct MainMenuView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     if let p {
                         if let run = p.run {
-                            Text("진행 중 · \(run.whereText)").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
-                            Text("골드 \(Fmt.n(run.gold)) · 처치 \(run.kills) · 덱 \(run.deck.count)장")
+                            Text(L("진행 중 · \(run.whereText)", "In progress · \(run.whereText)")).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
+                            Text(L("골드 \(Fmt.n(run.gold)) · 처치 \(run.kills) · 덱 \(run.deck.count)장", "Gold \(Fmt.n(run.gold)) · Kills \(run.kills) · Deck \(run.deck.count)"))
                                 .font(.caption).foregroundStyle(Theme.muted)
                         } else {
-                            Text("진행 중인 게임 없음").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
+                            Text(L("진행 중인 게임 없음", "No game in progress")).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
                         }
-                        Text("최고 \(p.bestDepth)층 · 업적 \(p.achievements.count)/\(Achievements.all.count) · 도감 \(p.collection.intersection(CardCatalog.allKeys).count)/\(CardCatalog.entries.count)")
+                        Text(L("최고 \(p.bestDepth)층 · 업적 \(p.achievements.count)/\(Achievements.all.count) · 도감 \(p.collection.intersection(CardCatalog.allKeys).count)/\(CardCatalog.entries.count)", "Best floor \(p.bestDepth) · Achievements \(p.achievements.count)/\(Achievements.all.count) · Collection \(p.collection.intersection(CardCatalog.allKeys).count)/\(CardCatalog.entries.count)"))
                             .font(.caption).foregroundStyle(Theme.muted)
-                        Text("저장: \(p.updatedAt.formatted(date: .abbreviated, time: .shortened))")
+                        Text(L("저장: \(Lang.shared.date(p.updatedAt))", "Saved: \(Lang.shared.date(p.updatedAt))"))
                             .font(.caption2).foregroundStyle(Theme.muted)
                     } else {
-                        Text("빈 슬롯").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.muted)
-                        Text("새 게임을 시작할 수 있어요").font(.caption).foregroundStyle(Theme.muted)
+                        Text(L("빈 슬롯", "Empty slot")).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.muted)
+                        Text(L("새 게임을 시작할 수 있어요", "Ready for a new game")).font(.caption).foregroundStyle(Theme.muted)
                     }
                 }
                 Spacer(minLength: 0)
@@ -128,7 +132,7 @@ struct MainMenuView: View {
                         Image(systemName: "trash").foregroundStyle(Theme.red).frame(width: 36, height: 36)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("슬롯 \(i + 1) 지우기")
+                    .accessibilityLabel(L("슬롯 \(i + 1) 지우기", "Delete slot \(i + 1)"))
                 }
             }
             .padding(10)
@@ -151,12 +155,12 @@ struct MainMenuView: View {
         let hasRun = store.slots[selected]?.run != nil
         VStack(spacing: 10) {
             if hasRun {
-                Button("이어하기") { onStart(selected, false) }
+                Button(L("이어하기", "Continue")) { onStart(selected, false) }
                     .buttonStyle(MainButtonStyle())
-                Button("새 게임") { confirmNewGame = true }
+                Button(L("새 게임", "New game")) { confirmNewGame = true }
                     .buttonStyle(MainButtonStyle(filled: false))
             } else {
-                Button("시작하기") { begin() }
+                Button(L("시작하기", "Start")) { begin() }
                     .buttonStyle(MainButtonStyle())
             }
         }
@@ -167,13 +171,13 @@ struct MainMenuView: View {
 
     private var progressButtons: some View {
         HStack(spacing: 10) {
-            progressTile(icon: "🏆", title: "업적", value: "\(profile.achievements.count)/\(Achievements.all.count)") {
+            progressTile(icon: "🏆", title: L("업적", "Achievements"), value: "\(profile.achievements.count)/\(Achievements.all.count)") {
                 showAchievements = true
             }
-            progressTile(icon: "🃏", title: "카드 도감", value: "\(profile.collection.intersection(CardCatalog.allKeys).count)/\(CardCatalog.entries.count)") {
+            progressTile(icon: "🃏", title: L("카드 도감", "Collection"), value: "\(profile.collection.intersection(CardCatalog.allKeys).count)/\(CardCatalog.entries.count)") {
                 showCollection = true
             }
-            progressTile(icon: "🎒", title: "퍽", value: "\((profile.perksUnlocked ?? []).count)/\(MetaPerk.allCases.count)") {
+            progressTile(icon: "🎒", title: L("퍽", "Perks"), value: "\((profile.perksUnlocked ?? []).count)/\(MetaPerk.allCases.count)") {
                 showPerks = true
             }
         }
@@ -185,7 +189,7 @@ struct MainMenuView: View {
                 Text(icon).font(.largeTitle)
                 Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
                 Text(value).font(.hand(20)).foregroundStyle(Theme.red)
-                Text("슬롯 \(selected + 1)").font(.caption2).foregroundStyle(Theme.muted)
+                Text(L("슬롯 \(selected + 1)", "Slot \(selected + 1)")).font(.caption2).foregroundStyle(Theme.muted)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
@@ -207,7 +211,7 @@ struct AchievementsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                SheetHeader(title: "업적", subtitle: "슬롯 \(slot + 1) · \(profile.achievements.count)/\(Achievements.all.count) 달성") { dismiss() }
+                SheetHeader(title: L("업적", "Achievements"), subtitle: L("슬롯 \(slot + 1) · \(profile.achievements.count)/\(Achievements.all.count) 달성", "Slot \(slot + 1) · \(profile.achievements.count)/\(Achievements.all.count) unlocked")) { dismiss() }
                 statsBox
                 ForEach(Achievements.all) { a in
                     let date = profile.achievements[a.id]
@@ -221,7 +225,7 @@ struct AchievementsView: View {
                             Text(a.title).font(.body.weight(.semibold)).foregroundStyle(date == nil ? Theme.muted : Theme.ink)
                             Text(a.desc).font(.footnote).foregroundStyle(Theme.muted)
                             if let date {
-                                Text("\(date.formatted(date: .abbreviated, time: .omitted)) 달성")
+                                Text(L("\(Lang.shared.date(date, time: false)) 달성", "Unlocked \(Lang.shared.date(date, time: false))"))
                                     .font(.caption2).foregroundStyle(Theme.red)
                             }
                         }
@@ -240,11 +244,11 @@ struct AchievementsView: View {
     private var statsBox: some View {
         let s = profile.stats
         return Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 4) {
-            row("최고 기록", "\(profile.bestDepth)층, 한 방 \(Fmt.n(profile.bestSingle))")
-            row("끝낸 게임", "\(s.runsFinished)판")
-            row("누적 처치", "\(s.kills)마리 (정예 \(s.eliteKills), 보스 \(s.bossKills))")
-            row("최고 한 방", Fmt.n(s.maxHit))
-            row("상점 구매", "\(s.cardsBought)장")
+            row(L("최고 기록", "Best run"), L("\(profile.bestDepth)층, 한 방 \(Fmt.n(profile.bestSingle))", "Floor \(profile.bestDepth), best hit \(Fmt.n(profile.bestSingle))"))
+            row(L("끝낸 게임", "Runs finished"), L("\(s.runsFinished)판", "\(s.runsFinished)"))
+            row(L("누적 처치", "Total kills"), L("\(s.kills)마리 (정예 \(s.eliteKills), 보스 \(s.bossKills))", "\(s.kills) (elites \(s.eliteKills), bosses \(s.bossKills))"))
+            row(L("최고 한 방", "Best hit"), Fmt.n(s.maxHit))
+            row(L("상점 구매", "Cards bought"), L("\(s.cardsBought)장", "\(s.cardsBought)"))
         }
         .font(.footnote)
         .padding(10)
@@ -267,25 +271,25 @@ struct CollectionView: View {
     let profile: SlotProfile
     let slot: Int
     @Environment(\.dismiss) private var dismiss
-    @State private var info = "카드를 누르면 설명이 보여요. 덱에 들어온 카드가 도감에 기록돼요."
+    @State private var info: String?
 
     var body: some View {
         let found = profile.collection.intersection(CardCatalog.allKeys).count
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                SheetHeader(title: "카드 도감", subtitle: "슬롯 \(slot + 1) · \(found)/\(CardCatalog.entries.count) 수집") { dismiss() }
+                SheetHeader(title: L("카드 도감", "Collection"), subtitle: L("슬롯 \(slot + 1) · \(found)/\(CardCatalog.entries.count) 수집", "Slot \(slot + 1) · \(found)/\(CardCatalog.entries.count) collected")) { dismiss() }
                 ProgressView(value: profile.collectionProgress).tint(Theme.red)
-                Text(info)
+                Text(info ?? L("카드를 누르면 설명이 보여요. 덱에 들어온 카드가 도감에 기록돼요.", "Tap a card to see what it does. Cards that enter your deck are added to the collection."))
                     .font(.footnote)
                     .foregroundStyle(Theme.text)
                     .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
                     .padding(.horizontal, 10).padding(.vertical, 8)
                     .background(Theme.card, in: .rect(cornerRadius: 8))
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.edge, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3])))
-                section("숫자", prefix: "num-")
-                section("기호", prefix: "op-")
-                section("강화", prefix: "enh-")
-                section("변신", prefix: "tr-")
+                section(L("숫자", "Numbers"), prefix: "num-")
+                section(L("기호", "Operators"), prefix: "op-")
+                section(L("강화", "Enhancements"), prefix: "enh-")
+                section(L("변신", "Transformations"), prefix: "tr-")
             }
             .padding(18)
         }
@@ -300,7 +304,7 @@ struct CollectionView: View {
                 ForEach(entries) { e in
                     let owned = profile.collection.contains(e.key)
                     Button {
-                        info = owned ? "\(e.title): \(e.desc)" : "아직 발견하지 못한 카드예요."
+                        info = owned ? "\(e.title): \(e.desc)" : L("아직 발견하지 못한 카드예요.", "You haven't found this card yet.")
                     } label: {
                         VStack(spacing: 3) {
                             if owned {
@@ -317,7 +321,7 @@ struct CollectionView: View {
                         }
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(owned ? e.title : "미발견 카드")
+                    .accessibilityLabel(owned ? e.title : L("미발견 카드", "Undiscovered card"))
                 }
             }
         }
@@ -338,17 +342,17 @@ struct PerkSheet: View {
         let mine = p.run?.perks ?? []
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                SheetHeader(title: "퍽", subtitle: "슬롯 \(slot + 1) · 해금 \(unlocked.count)/\(MetaPerk.allCases.count)") { dismiss() }
+                SheetHeader(title: L("퍽", "Perks"), subtitle: L("슬롯 \(slot + 1) · 해금 \(unlocked.count)/\(MetaPerk.allCases.count)", "Slot \(slot + 1) · \(unlocked.count)/\(MetaPerk.allCases.count) unlocked")) { dismiss() }
                 Text((p.run != nil
-                      ? "이번 판에 장착한 퍽은 \(mine.count)개예요. 판이 끝나야 바꿀 수 있어요."
-                      : "새 게임을 시작할 때 \(MetaPerk.slots)개까지 골라요.")
-                     + " 더 깊이 내려갈수록 하나씩 해금돼요 (최고 \(MetaPerk.depthText(max(1, p.stats.maxDepth ?? 0))))."
+                      ? L("이번 판에 장착한 퍽은 \(mine.count)개예요. 판이 끝나야 바꿀 수 있어요.", "This run has \(mine.count) perks equipped. You can change them when the run ends.")
+                      : L("새 게임을 시작할 때 \(MetaPerk.slots)개까지 골라요.", "Choose up to \(MetaPerk.slots) when you start a new game."))
+                     + L(" 더 깊이 내려갈수록 하나씩 해금돼요 (최고 \(MetaPerk.depthText(max(1, p.stats.maxDepth ?? 0))))."," Go deeper to unlock more (best: \(MetaPerk.depthText(max(1, p.stats.maxDepth ?? 0))))).")
                 )
                 .font(.footnote).foregroundStyle(Theme.muted)
                 ForEach(MetaPerk.allCases) { k in
                     let open = unlocked.contains(k.rawValue)
                     PerkRow(perk: k, open: open, on: mine.contains(k.rawValue),
-                            tag: !open ? "\(MetaPerk.depthText(k.depth)) 도달 시 해금" : mine.contains(k.rawValue) ? "이번 판" : "")
+                            tag: !open ? L("\(MetaPerk.depthText(k.depth)) 도달 시 해금", "Unlocks at \(MetaPerk.depthText(k.depth))") : mine.contains(k.rawValue) ? L("이번 판", "This run") : "")
                 }
             }
             .padding(18)
@@ -375,7 +379,7 @@ struct PerkPickSheet: View {
         let locked = MetaPerk.allCases.count - unlocked.count
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                SheetHeader(title: "퍽 고르기", subtitle: "이번 판에 쓸 퍽을 \(MetaPerk.slots)개까지 골라요 (\(eq.count)/\(MetaPerk.slots)). 판이 끝날 때까지 바꿀 수 없어요.") { dismiss() }
+                SheetHeader(title: L("퍽 고르기", "Choose perks"), subtitle: L("이번 판에 쓸 퍽을 \(MetaPerk.slots)개까지 골라요 (\(eq.count)/\(MetaPerk.slots)). 판이 끝날 때까지 바꿀 수 없어요.", "Choose up to \(MetaPerk.slots) perks for this run (\(eq.count)/\(MetaPerk.slots)). They can't be changed until the run ends.")) { dismiss() }
                 ForEach(MetaPerk.allCases.filter { unlocked.contains($0.rawValue) }) { k in
                     let on = eq.contains(k.rawValue)
                     Button {
@@ -385,15 +389,15 @@ struct PerkPickSheet: View {
                         setEquipped(next)
                         Sound.shared.play(.place)
                     } label: {
-                        PerkRow(perk: k, open: true, on: on, tag: on ? "장착" : eq.count >= MetaPerk.slots ? "" : "고르기")
+                        PerkRow(perk: k, open: true, on: on, tag: on ? L("장착", "Equipped") : eq.count >= MetaPerk.slots ? "" : L("고르기", "Choose"))
                     }
                     .buttonStyle(.plain)
                     .accessibilityAddTraits(on ? .isSelected : [])
                 }
                 if locked > 0 {
-                    Text("아직 잠긴 퍽 \(locked)개는 더 깊이 내려가면 해금돼요.").font(.footnote).foregroundStyle(Theme.muted)
+                    Text(L("아직 잠긴 퍽 \(locked)개는 더 깊이 내려가면 해금돼요.", "Go deeper to unlock the \(locked) locked perks.")).font(.footnote).foregroundStyle(Theme.muted)
                 }
-                Button(eq.isEmpty ? "퍽 없이 시작" : "이 퍽 \(eq.count)개로 시작") {
+                Button(eq.isEmpty ? L("퍽 없이 시작", "Start without perks") : L("이 퍽 \(eq.count)개로 시작", "Start with these \(eq.count) perks")) {
                     setEquipped(eq)
                     dismiss()
                     onStart()
@@ -442,7 +446,7 @@ struct SheetHeader: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(title).font(.hand(32)).foregroundStyle(Theme.red)
                 Spacer()
-                Button("닫기", action: onClose).buttonStyle(ChipButtonStyle())
+                Button(L("닫기", "Close"), action: onClose).buttonStyle(ChipButtonStyle())
             }
             Text(subtitle).font(.subheadline).foregroundStyle(Theme.muted)
         }

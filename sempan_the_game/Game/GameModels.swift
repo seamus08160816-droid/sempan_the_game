@@ -77,34 +77,34 @@ enum Enh: String, Codable, CaseIterable {
         case .gold: "×2"
         case .fire: "+"
         case .luck: "?×5"
-        case .amp: "증폭"
-        case .stack: "적립"
-        case .flip: "역전"
-        case .exact: "정확"
+        case .amp: L("증폭", "AMP")
+        case .stack: L("적립", "ACC")
+        case .flip: L("역전", "REV")
+        case .exact: L("정확", "EXACT")
         }
     }
 
     var name: String {
         switch self {
-        case .gold: "황금"
-        case .fire: "불꽃"
-        case .luck: "행운"
-        case .amp: "증폭"
-        case .stack: "적립"
-        case .flip: "역전"
-        case .exact: "정확"
+        case .gold: L("황금", "Gold")
+        case .fire: L("불꽃", "Fire")
+        case .luck: L("행운", "Luck")
+        case .amp: L("증폭", "Amplify")
+        case .stack: L("적립", "Accumulate")
+        case .flip: L("역전", "Reversal")
+        case .exact: L("정확", "Exact")
         }
     }
 
     var desc: String {
         switch self {
-        case .gold: "수식에 쓰면 최종 결과 ×2"
-        case .fire: "수식에 쓰면 최종 결과에 더해요. 적 체력과 함께 커져요"
-        case .luck: "수식에 쓰면 25% 확률로 최종 결과 ×5"
-        case .amp: "오른쪽 수를 세 배로 더해요"
-        case .stack: "보너스를 함께 더하고, 쓸 때마다 보너스가 \(Int(CFG.stackStep))×물가만큼 영구히 커져요"
-        case .flip: "빼서 음수가 되면 빼는 대신 두 수를 더하고 ×4"
-        case .exact: "나누어떨어지면 나누는 대신 두 수를 곱하고 ×2"
+        case .gold: L("수식에 쓰면 최종 결과 ×2", "Doubles the final result when used in an equation")
+        case .fire: L("수식에 쓰면 최종 결과에 더해요. 적 체력과 함께 커져요", "Adds a bonus to the final result. Grows with enemy HP")
+        case .luck: L("수식에 쓰면 25% 확률로 최종 결과 ×5", "25% chance to multiply the final result by 5")
+        case .amp: L("오른쪽 수를 세 배로 더해요", "Adds the right-hand number three times")
+        case .stack: L("보너스를 함께 더하고, 쓸 때마다 보너스가 \(Int(CFG.stackStep))×물가만큼 영구히 커져요", "Adds a bonus that grows by \(Int(CFG.stackStep))× the price level every time it is used")
+        case .flip: L("빼서 음수가 되면 빼는 대신 두 수를 더하고 ×4", "If the subtraction goes negative, adds the two numbers instead and multiplies by 4")
+        case .exact: L("나누어떨어지면 나누는 대신 두 수를 곱하고 ×2", "If it divides evenly, multiplies the two numbers instead and doubles the result")
         }
     }
 
@@ -146,13 +146,13 @@ enum Transform: String, Codable, CaseIterable {
 
     var name: String {
         switch self {
-        case .sq: "제곱"
-        case .pow2: "2의 거듭제곱"
-        case .exp: "자연지수"
-        case .fact: "팩토리얼"
-        case .selfPow: "자기거듭제곱"
-        case .sfact: "슈퍼팩토리얼"
-        case .hfact: "하이퍼팩토리얼"
+        case .sq: L("제곱", "Square")
+        case .pow2: L("2의 거듭제곱", "Power of two")
+        case .exp: L("자연지수", "Natural exponent")
+        case .fact: L("팩토리얼", "Factorial")
+        case .selfPow: L("자기거듭제곱", "Self-power")
+        case .sfact: L("슈퍼팩토리얼", "Superfactorial")
+        case .hfact: L("하이퍼팩토리얼", "Hyperfactorial")
         }
     }
 
@@ -331,7 +331,7 @@ struct Card: Codable, Identifiable, Equatable {
         return String(v)
     }
 
-    var label: String { kind == .num ? "숫자 \(faceText)" : "\(op?.symbol ?? "") 카드" }
+    var label: String { kind == .num ? L("숫자 \(faceText)", "Number \(faceText)") : L("\(op?.symbol ?? "") 카드", "\(op?.symbol ?? "") card") }
 
     /// 수식 글자: 다섯 장이면 앞의 세 장을 괄호로 묶어 계산 순서를 보여줘요
     static func exprText(_ cs: [Card]) -> String {
@@ -389,10 +389,10 @@ enum NodeType: String, Codable {
 
     var name: String {
         switch self {
-        case .mob: "몹"
-        case .elite: "정예"
-        case .shop: "상점"
-        case .boss: "보스"
+        case .mob: L("몹", "Monster")
+        case .elite: L("정예", "Elite")
+        case .shop: L("상점", "Shop")
+        case .boss: L("보스", "Boss")
         }
     }
 }
@@ -410,6 +410,19 @@ enum MobNames {
     static let mob = ["계산 슬라임", "나머지 고블린", "분모 박쥐", "소수점 쥐", "괄호 거미", "오답 유령", "반올림 두더지", "약수 버섯"]
     static let elite = ["구구단 기사", "약분 마법사", "통분 쌍둥이", "검산 감시자"]
     static let boss = ["방정식 골렘", "무한소 군주", "미지수 용", "증명 거인"]
+
+    /// 저장에는 한국어 이름을 두고, 화면에 보일 때만 지금 언어로 바꿔요
+    private static let english: [String: String] = [
+        "계산 슬라임": "Calc Slime", "나머지 고블린": "Remainder Goblin", "분모 박쥐": "Denominator Bat", "소수점 쥐": "Decimal Rat",
+        "괄호 거미": "Bracket Spider", "오답 유령": "Wrong-Answer Ghost", "반올림 두더지": "Rounding Mole", "약수 버섯": "Divisor Mushroom",
+        "구구단 기사": "Times-Table Knight", "약분 마법사": "Fraction Mage", "통분 쌍둥이": "Common-Denominator Twins", "검산 감시자": "Checksum Sentinel",
+        "방정식 골렘": "Equation Golem", "무한소 군주": "Infinitesimal Lord", "미지수 용": "Dragon of Unknowns", "증명 거인": "Proof Giant",
+        "상점": "Shop", "몹": "Monster", "정예": "Elite", "보스": "Boss"
+    ]
+
+    static func display(_ name: String) -> String {
+        Lang.shared.isKorean ? name : (english[name] ?? name)
+    }
 
     static func random(for type: NodeType) -> String {
         switch type {
@@ -598,11 +611,11 @@ struct RunState: Codable {
 
     func ladderDepth(_ f: Int) -> Int { isLog ? (act - CFG.logAct) * CFG.actLen + f : depthOf(f) }
 
-    var actName: String { isLog ? "로그 \(act - CFG.logAct + 1)막" : "\(act)막" }
+    var actName: String { isLog ? L("로그 \(act - CFG.logAct + 1)막", "Log Act \(act - CFG.logAct + 1)") : L("\(act)막", "Act \(act)") }
 
     /// 로그 단계의 체력은 10의 거듭제곱, 피해는 자릿수예요
     func hpText(_ x: Double) -> String { isLog ? "10^\(Fmt.n(x))" : Fmt.n(x) }
-    func dmgText(_ x: Double) -> String { isLog ? "\(Fmt.n(x))자리" : Fmt.n(x) }
+    func dmgText(_ x: Double) -> String { isLog ? L("\(Fmt.n(x))자리", "\(Fmt.n(x)) digits") : Fmt.n(x) }
 
     func hasPerk(_ k: MetaPerk) -> Bool { (perks ?? []).contains(k.rawValue) }
     func perkReady(_ k: MetaPerk) -> Bool { hasPerk(k) && perkUsed?[k.rawValue] != act }
@@ -672,42 +685,51 @@ struct RunState: Codable {
 
     var unlockedTR: [Transform] { Transform.ladder.filter { act >= $0.act } }
 
-    var whereText: String { floor == 0 ? "\(actName) 출발" : "\(actName) \(floor)층" }
+    var whereText: String { floor == 0 ? L("\(actName) 출발", "\(actName) start") : L("\(actName) \(floor)층", "\(actName) F\(floor)") }
 }
 
 // MARK: - 숫자 표시
 
 enum Fmt {
     private static let units: [(Double, String)] = [(1e16, "경"), (1e12, "조"), (1e8, "억"), (1e4, "만")]
+    /// 영어: 짧은 단위 (K는 10만~100만 아래에서만)
+    private static let unitsEn: [(Double, String)] = [(1e18, "Qi"), (1e15, "Qa"), (1e12, "T"), (1e9, "B"), (1e6, "M"), (1e3, "K")]
 
-    private static let formatter: NumberFormatter = {
+    private static let formatterKo = makeFormatter("ko_KR")
+    private static let formatterEn = makeFormatter("en_US")
+
+    private static func makeFormatter(_ id: String) -> NumberFormatter {
         let f = NumberFormatter()
-        f.locale = Locale(identifier: "ko_KR")
+        f.locale = Locale(identifier: id)
         f.numberStyle = .decimal
         f.maximumFractionDigits = 2
         return f
-    }()
-
-    private static func grouped(_ n: Double) -> String {
-        formatter.string(from: NSNumber(value: n)) ?? String(n)
     }
 
-    /// 원본 fmt(): 만·억·조·경 단위로 짧게 보여줘요
+    private static func grouped(_ n: Double) -> String {
+        (Lang.shared.isKorean ? formatterKo : formatterEn).string(from: NSNumber(value: n)) ?? String(n)
+    }
+
+    /// 3자리 유효숫자로 반올림
+    private static func sig3(_ x: Double) -> Double {
+        let digits = floor(log10(abs(x))) + 1
+        let factor = pow(10, 3 - digits)
+        return (x * factor).rounded() / factor
+    }
+
+    /// 원본 fmt(): 한국어는 만·억·조·경, 영어는 K·M·B·T·Qa·Qi 단위로 짧게 보여줘요
     static func n(_ n: Double) -> String {
         guard n.isFinite else { return "∞" }
         let a = abs(n)
         if a < 1e5 { return grouped((n * 100).rounded() / 100) }
-        if a >= 1e20 {
+        let sci = Lang.shared.isKorean ? 1e20 : 1e21
+        if a >= sci {
             let exponent = Int(floor(log10(a)))
             let mantissa = n / pow(10, Double(exponent))
             return String(format: "%.2f×10^%d", mantissa, exponent)
         }
-        for (u, name) in units where a >= u {
-            let x = n / u
-            // 유효숫자 3자리로 반올림
-            let digits = floor(log10(abs(x))) + 1
-            let factor = pow(10, 3 - digits)
-            return grouped((x * factor).rounded() / factor) + name
+        for (u, name) in (Lang.shared.isKorean ? units : unitsEn) where a >= u {
+            return grouped(sig3(n / u)) + name
         }
         return grouped(n)
     }

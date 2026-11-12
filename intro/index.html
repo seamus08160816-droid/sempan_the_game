@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sempan</title>
+<meta name="description" content="Sempan is a deck-building roguelike where you defeat monsters with arithmetic. Play it in your browser, on Android, or build it for iOS and macOS.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F7F8F3; --grid:#DCE6EF; --ink:#1D2F6F; --text:#22252B; --muted:#5E6573;
+  --red:#D3302A; --hl:#F5E23B; --card:#FFFFFF; --edge:#C3CEDB;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --paper:#1C2723; --grid:#26342E; --ink:#B3CBFF; --text:#ECEFE8; --muted:#A3AEA7;
+    --red:#FF6B5E; --hl:#E8D53A; --card:#26332E; --edge:#3E4F47;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#1C2723; --grid:#26342E; --ink:#B3CBFF; --text:#ECEFE8; --muted:#A3AEA7;
+  --red:#FF6B5E; --hl:#E8D53A; --card:#26332E; --edge:#3E4F47;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0; color:var(--text); background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:22px 22px;
+  font:17px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+.h{font-family:"Gaegu","Comic Sans MS",cursive; font-weight:700}
+a{color:var(--ink)}
+.wrap{max-width:1040px; margin:0 auto; padding:0 16px}
+
+/* 첫 화면 */
+.hero{text-align:center; padding:64px 0 40px}
+.hero .logo{font-size:5.5rem; line-height:1; color:var(--ink); margin:0}
+.hero .tag{font-size:1.25rem; color:var(--muted); margin:12px auto 0; max-width:560px}
+.eq{display:flex; justify-content:center; align-items:center; gap:8px; margin:28px 0 8px}
+.eq span{display:grid; place-items:center; width:52px; aspect-ratio:3/4; border:1.5px solid var(--edge); border-radius:8px; background:var(--card); box-shadow:0 3px 0 var(--edge); font-size:2rem; color:var(--ink)}
+.eq span.op{background:#E8EEF8; color:var(--red)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .eq span.op{background:#2C3B45} }
+.eq b{font-size:2.2rem; color:var(--red); margin-left:6px}
+.eq i{font-style:normal; font-size:3rem; color:var(--ink); line-height:1}
+.cta{display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-top:28px}
+.btn{display:inline-block; padding:12px 22px; border-radius:10px; border:2px solid var(--ink); font-weight:600; text-decoration:none}
+.btn.main{background:var(--ink); color:var(--paper)}
+.btn.ghost{background:var(--card); color:var(--ink)}
+.meta{margin-top:18px; font-size:.9rem; color:var(--muted)}
+
+/* 기능 소개 */
+.feature{display:grid; grid-template-columns:320px 1fr; gap:48px; align-items:center; padding:44px 0; border-top:1.5px dashed var(--edge)}
+.feature:nth-of-type(even){grid-template-columns:1fr 320px}
+.feature:nth-of-type(even) .shot{order:2}
+.shot{margin:0}
+.shot img{display:block; width:320px; max-width:100%; height:auto; border:2px solid var(--ink); border-radius:18px; background:var(--card); box-shadow:0 6px 0 var(--ink)}
+.num{display:inline-block; font-size:1.1rem; color:var(--red); border:2px solid var(--red); border-radius:6px; padding:0 8px; transform:rotate(-4deg); margin-bottom:6px}
+.feature h2{font-size:2.4rem; line-height:1.1; color:var(--ink); margin:0 0 12px}
+.feature p{margin:0 0 12px}
+.feature ul{margin:0; padding-left:20px}
+.feature li{margin:4px 0}
+.mark{background:linear-gradient(transparent 55%,var(--hl) 55%,var(--hl) 92%,transparent 92%); color:var(--text)}
+code{font-family:ui-monospace,Menlo,monospace; font-size:.92em; background:var(--card); border:1px solid var(--edge); border-radius:4px; padding:0 4px}
+
+footer{padding:40px 0 56px; border-top:1.5px dashed var(--edge); text-align:center; color:var(--muted); font-size:.95rem}
+footer .h{font-size:2rem; color:var(--ink); margin:0 0 8px}
+
+@media (max-width:760px){
+  .hero{padding-top:40px}
+  .hero .logo{font-size:4.2rem}
+  .eq{gap:5px}
+  .eq span{width:38px; font-size:1.5rem}
+  .eq i{font-size:2.3rem}
+  .eq b{font-size:1.7rem; white-space:nowrap; margin-left:2px}
+  .feature, .feature:nth-of-type(even){grid-template-columns:1fr; gap:20px; padding:32px 0}
+  .feature:nth-of-type(even) .shot{order:0}
+  .shot{display:flex; justify-content:center}
+  .feature h2{font-size:2rem}
+}
+</style>
+</head>
+<body>
+<header class="wrap hero">
+  <h1 class="logo h">Sempan</h1>
+  <p class="tag">A deck-building roguelike where you defeat monsters with arithmetic.</p>
+  <div class="eq h" aria-hidden="true"><i>(</i><span>7</span><span class="op">+</span><span>3</span><i>)</i><span class="op">×</span><span>8</span><b>= 80</b></div>
+  <div class="cta">
+    <a class="btn main" href="https://sempan.vercel.app">Play in your browser</a>
+    <a class="btn ghost" href="https://github.com/seamus08160816-droid/sempan_the_game/releases">Download (Android · iOS · Web)</a>
+  </div>
+  <p class="meta">Beta 2 · The game's interface is served in Korean · Progress is saved on your device</p>
+</header>
+
+<main class="wrap">
+  <section class="feature">
+    <figure class="shot"><img src="gifs/build.gif" width="320" height="624" alt="Swiping across a fanned hand of cards: a card lifts, drops into the formula, and the equation (7 + 3) × 8 builds up with a live preview of 80." loading="lazy"></figure>
+    <div>
+      <span class="num h">1</span>
+      <h2 class="h">Build an equation</h2>
+      <p>Slide your finger across your hand and the card under it lifts up. Let go to drop it into the formula. Drag down to cancel.</p>
+      <p>Alternate numbers and operators, up to five cards. Equations are worked out <span class="mark">strictly left to right</span>, so the first three cards are bracketed for you: <code>(7 + 3) × 8 = 80</code>.</p>
+    </div>
+  </section>
+
+  <section class="feature">
+    <figure class="shot"><img src="gifs/calculate.gif" width="320" height="624" alt="The equation is worked out step by step, the result counts up to 80, the board shakes, and a red 'defeated' stamp lands." loading="lazy"></figure>
+    <div>
+      <span class="num h">2</span>
+      <h2 class="h">Calculate and hit</h2>
+      <p>Each step is written into the notebook, the result counts up, and the damage lands. The harder the hit compared to the monster's HP, the harder the screen shakes and the louder it sounds.</p>
+      <p>You only get four calculations per fight. Win early and every calculation or discard you didn't use turns into gold.</p>
+    </div>
+  </section>
+
+  <section class="feature">
+    <figure class="shot"><img src="gifs/reward.gif" width="320" height="624" alt="The reward screen shows the best hit of the fight, a gold breakdown, and three perks to choose from." loading="lazy"></figure>
+    <div>
+      <span class="num h">3</span>
+      <h2 class="h">Pick a reward</h2>
+      <p>After every kill you see your best hit of the fight, where your gold came from, and three ways to upgrade a card:</p>
+      <ul>
+        <li><b>Enhancements</b>: Gold ×2, Fire adds a bonus, Luck has a 25% chance of ×5</li>
+        <li><b>Operator perks</b>: Amplify (+), Accumulate (+), Reversal (−), Exact (÷)</li>
+        <li><b>Bigger numbers</b> and <b>transformations</b> that turn a 7 into 7², 2⁷, 7! and beyond</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="feature">
+    <figure class="shot"><img src="gifs/boss.gif" width="320" height="624" alt="A branching map scrolls to the boss on floor 10; tapping it darkens the screen as a red banner slides in with the boss's name." loading="lazy"></figure>
+    <div>
+      <span class="num h">4</span>
+      <h2 class="h">Climb the map</h2>
+      <p>Each act is a ten-floor branching map of monsters, elites and shops. Elites hit harder but let you pick two rewards. You'll never be forced into two shops in a row.</p>
+      <p>Floor ten is the boss. The screen goes dark, its name slams onto a red banner and a heavy bell tolls.</p>
+    </div>
+  </section>
+
+  <section class="feature">
+    <figure class="shot"><img src="gifs/halo.gif" width="320" height="624" alt="After placing 12 and an Exact division card, the numbers in hand that divide 12 evenly glow yellow; choosing 4 previews 96." loading="lazy"></figure>
+    <div>
+      <span class="num h">5</span>
+      <h2 class="h">Spot exact divisions</h2>
+      <p>An <b>Exact ÷</b> card multiplies instead of dividing when the numbers divide evenly, then doubles the result.</p>
+      <p>Place one and every number in your hand that divides evenly <span class="mark">glows</span>, so you don't have to do the mental maths: <code>12 ÷ 4</code> becomes <code>12 × 4 × 2 = 96</code>.</p>
+    </div>
+  </section>
+
+  <section class="feature">
+    <figure class="shot"><img src="gifs/shop.gif" width="320" height="624" alt="In the shop, buying a 2-to-the-ninth card opens the deck, and tapping a 1 swaps it out." loading="lazy"></figure>
+    <div>
+      <span class="num h">6</span>
+      <h2 class="h">Swap cards in the shop</h2>
+      <p>Spend gold to swap a shop card into your deck: numbers replace numbers, operators replace operators. Your deck size never changes, so every purchase is a trade-off.</p>
+      <p>Prices and rewards grow together with the monsters, so gold keeps its value all game long.</p>
+    </div>
+  </section>
+
+  <section class="feature">
+    <figure class="shot"><img src="gifs/log.gif" width="320" height="624" alt="A 'Dimension Ascent' banner, then a fight where HP is 10 to the 60 and 8 factorial times 7 to the 7th deals 10.5 digits of damage." loading="lazy"></figure>
+    <div>
+      <span class="num h">7</span>
+      <h2 class="h">Ascend a dimension</h2>
+      <p>Every act unlocks a bigger transformation: n², 2ⁿ, eⁿ, n!, ...</p>
+      <p>After act six the numbers outgrow the page, so the game enters the <b>log stage</b>. Monster HP becomes a power of ten, and damage is the <span class="mark">number of digits</span> in your result: <code>8! × 7⁷ ≈ 33.2 billion</code> deals 10.5 digits. HP and prices restart from the act one curve, and nothing ever overflows.</p>
+    </div>
+  </section>
+
+  <section class="feature">
+    <figure class="shot"><img src="gifs/perks.gif" width="320" height="624" alt="Starting a new game opens the perk picker; three perks are chosen and the run begins." loading="lazy"></figure>
+    <div>
+      <span class="num h">8</span>
+      <h2 class="h">Unlock perks</h2>
+      <p>Reach deeper floors to unlock ten perks, then choose up to three when you start a run. They stay locked in until the run ends.</p>
+      <p>Each is worth roughly one free shop restock per act, for example a free restock, a reroll of reward choices, or redrawing your whole hand once per act.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p class="h">Ready to calculate?</p>
+  <p><a href="https://sempan.vercel.app">Play in your browser</a> · <a href="https://github.com/seamus08160816-droid/sempan_the_game/releases">Downloads</a> · <a href="https://github.com/seamus08160816-droid/sempan_the_game">Source on GitHub</a></p>
+  <p>Web, Android and iOS / macOS share the same rules and balance. Sound effects and music are synthesized from scratch, and music and effects can be turned off separately.</p>
+</footer>
+</body>
+</html>

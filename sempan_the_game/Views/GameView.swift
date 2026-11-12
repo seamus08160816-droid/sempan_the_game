@@ -85,7 +85,16 @@ struct GameView: View {
         }
     }
 
+    /// 좁은 화면(390pt)에서도 넘치지 않게, 안 들어가면 제목부터 빼요
     private func header(_ run: RunState) -> some View {
+        ViewThatFits(in: .horizontal) {
+            headerRow(run, title: true, goldLabel: true)
+            headerRow(run, title: false, goldLabel: true)
+            headerRow(run, title: false, goldLabel: false)
+        }
+    }
+
+    private func headerRow(_ run: RunState, title: Bool, goldLabel: Bool) -> some View {
         HStack(spacing: 8) {
             Button {
                 onExit()
@@ -98,18 +107,28 @@ struct GameView: View {
             .buttonStyle(.plain)
             // 계산 연출 중에 나가면 끝나지 않은 작업이 슬롯을 덮어쓸 수 있어 막아요
             .disabled(session.busy && run.over == nil)
-            .accessibilityLabel("메인 화면으로 (자동 저장됨)")
-            Text("셈판").font(.hand(30)).foregroundStyle(Theme.ink)
+            .accessibilityLabel(L("메인 화면으로 (자동 저장됨)", "Main menu (progress is saved)"))
+            if title {
+                Text(L("셈판", "Sempan")).font(.hand(Lang.shared.isKorean ? 30 : 26)).foregroundStyle(Theme.ink)
+            }
             Spacer(minLength: 4)
             Text(run.whereText).font(.footnote).foregroundStyle(Theme.muted)
             HStack(spacing: 3) {
-                Text("골드").font(.footnote).foregroundStyle(Theme.muted)
+                if goldLabel {
+                    Text(L("골드", "Gold")).font(.footnote).foregroundStyle(Theme.muted)
+                }
                 Text(Fmt.n(run.gold)).font(.hand(22)).foregroundStyle(Theme.text).modifier(Highlight())
             }
-            SoundButton { showSound = true }
-            Button("덱 보기") { showDeck = true }.buttonStyle(ChipButtonStyle())
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(L("골드 \(Fmt.n(run.gold))", "Gold \(Fmt.n(run.gold))"))
+            HStack(spacing: 6) {
+                LangButton()
+                SoundButton { showSound = true }
+            }
+            Button(L("덱 보기", "Deck")) { showDeck = true }.buttonStyle(ChipButtonStyle())
         }
         .lineLimit(1)
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -126,9 +145,9 @@ struct GameView: View {
     session.run.lastGold = GoldBreakdown(g1: 5, g2: 4, g3: 6, g4: 6, gain: 21, over: 12, hp: 60,
                                          disc: 2, plays: 1, ratePlay: 6, rateDisc: 3, type: .mob)
     session.run.reward = RewardState(count: 1, idx: 1, offers: [
-        Perk(kind: .handSize, glyph: "손+1", title: "손패 +1장", desc: "한 번에 들고 있는 카드가 늘어요"),
-        Perk(kind: .plays, glyph: "계산", title: "계산 기회 +1", desc: "전투마다 한 번 더 계산할 수 있어요"),
-        Perk(kind: .discards, glyph: "버림", title: "버리기 +1", desc: "전투마다 한 번 더 버릴 수 있어요")
+        Perk(kind: .handSize, glyph: L("손+1", "Hand+1"), title: L("손패 +1장", "Hand +1"), desc: L("한 번에 들고 있는 카드가 늘어요", "Hold one more card at a time")),
+        Perk(kind: .plays, glyph: "계산", title: L("계산 기회 +1", "Calcs +1"), desc: L("전투마다 한 번 더 계산할 수 있어요", "One more calculation each fight")),
+        Perk(kind: .discards, glyph: L("버림", "Discard"), title: L("버리기 +1", "Discard +1"), desc: L("전투마다 한 번 더 버릴 수 있어요", "One more discard in every fight"))
     ])
     return GameView(session: session) {}
 }
